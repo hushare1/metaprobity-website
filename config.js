@@ -5,9 +5,8 @@ const GRIDSENSE_CONFIG = {
     // Development (local)
     // backendUrl: 'http://localhost:8001',
     
-    // Production - Update this after backend deployment
-    // Replace with your actual backend URL from Render, Fly, or DigitalOcean
-    backendUrl: 'https://gridsense-ai.onrender.com', // Example: Change after deployment
+    // Production - Backend deployed on Render
+    backendUrl: 'https://gridsense-ai.onrender.com',
     
     // API endpoints
     endpoints: {
