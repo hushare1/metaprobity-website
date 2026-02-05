@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Metaprobity GridSense-AI Real-Time Dashboard - Live power grid monitoring">
+    <meta name="keywords" content="power grid dashboard, real-time monitoring, PMU data, grid analytics">
+    <title>Dashboard | Metaprobity GridSense-AI</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="dashboard-styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="dashboard-page">
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <span class="logo-icon">⚡</span>
+                <span class="logo-text">Metaprobity</span>
+            </div>
+            <button class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="index.html#topology">Topology</a></li>
+                <li><a href="dashboard.html" class="active">Dashboard</a></li>
+                <li><a href="index.html#features">Features</a></li>
+                <li><a href="index.html#technical">Technical</a></li>
+                <li><a href="index.html#business">Business Value</a></li>
+                <li><a href="index.html#implementation">Implementation</a></li>
+                <li><a href="index.html#contact" class="cta-button">Contact Us</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Dashboard Header -->
+    <section class="dashboard-header">
+        <div class="container">
+            <div class="header-content">
+                <h1>GridSense-AI Live Dashboard</h1>
+                <p class="subtitle">Real-time power grid monitoring and predictive analytics</p>
+                <div class="status-bar">
+                    <div class="status-item">
+                        <span class="status-indicator active"></span>
+                        <span class="status-text">Live</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">System:</span>
+                        <span class="status-value">IEEE 9-Bus</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Update Rate:</span>
+                        <span class="status-value">1s</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">PMU Frequency:</span>
+                        <span class="status-value">30 Hz</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Dashboard Content -->
+    <section class="dashboard-main">
+        <div class="dashboard-wrapper">
+            <!-- Live Dashboard Iframe -->
+            <div class="dashboard-frame-container">
+                <iframe 
+                    id="dashboard-frame" 
+                    src="https://gridsense-ai.onrender.com/" 
+                    frameborder="0" 
+                    allowfullscreen
+                    title="GridSense-AI Live Dashboard">
+                </iframe>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <span class="logo-icon">⚡</span>
+                    <span class="logo-text">Metaprobity</span>
+                </div>
+                <div class="footer-links">
+                    <a href="index.html">Home</a>
+                    <a href="index.html#features">Features</a>
+                    <a href="index.html#contact">Contact</a>
+                </div>
+                <div class="footer-copy">
+                    <p>&copy; 2026 Metaprobity. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script src="dashboard-script.js"></script>
+</body>
+</html>
