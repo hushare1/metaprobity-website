@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Metaprobity GridSense-AI Pro - Real-time power grid monitoring with AI-powered predictive analytics for critical infrastructure">
+    <meta name="description" content="Metaprobity GridSense-AI - Real-time power grid monitoring with AI-powered predictive analytics for critical infrastructure">
     <meta name="keywords" content="power grid monitoring, PMU, EKF, grid stability, predictive analytics, energy management">
-    <title>Metaprobity | GridSense-AI Pro - Real-Time Power Grid Monitoring</title>
+    <title>Metaprobity | GridSense-AI - Real-Time Power Grid Predictive Intelligence</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,14 +39,15 @@
 
     <!-- Hero Section -->
     <section id="home" class="hero">
+        <div class="hero-brand">GridSense‑AI</div>
         <div class="grid-background">
             <canvas id="gridCanvas"></canvas>
         </div>
         <div class="container">
             <div class="hero-content">
                 <h1 class="hero-title">
-                    <span class="gradient-text">GridSense-AI Pro</span>
-                    <br>Real-Time Power Grid Intelligence
+                    Real-Time Power Grid
+                    <br><span class="accent-text">Predictive Intelligence</span>
                 </h1>
                 <p class="hero-subtitle">
                     Advanced AI-powered monitoring and predictive analytics for critical power infrastructure.
@@ -63,7 +64,7 @@
                     </div>
                     <div class="stat">
                         <div class="stat-value">&lt;50ms</div>
-                        <div class="stat-label">EKF Processing</div>
+                        <div class="stat-label">Bayesian Processing</div>
                     </div>
                     <div class="stat">
                         <div class="stat-value">99.9%</div>
@@ -103,123 +104,6 @@
                     <span class="info-icon">🔄</span>
                     <h4>Live Updates</h4>
                     <p>Dashboard refreshes every second with latest PMU measurements</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Interactive Topology Diagram Section -->
-    <section id="topology" class="topology-section">
-        <div class="container">
-            <div class="section-header scroll-animate">
-                <h2>IEEE 9-Bus Network Topology</h2>
-                <p>Interactive visualization of the power grid network</p>
-            </div>
-            <div class="topology-container scroll-animate-scale">
-                <svg class="topology-svg" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
-                    <!-- Background -->
-                    <defs>
-                        <linearGradient id="nodeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
-                        </linearGradient>
-                        <filter id="glow">
-                            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                            <feMerge>
-                                <feMergeNode in="coloredBlur"/>
-                                <feMergeNode in="SourceGraphic"/>
-                            </feMerge>
-                        </filter>
-                    </defs>
-                    
-                    <!-- Transmission Lines -->
-                    <line class="topology-line" x1="150" y1="150" x2="400" y2="150" stroke-dasharray="5,5"/>
-                    <line class="topology-line" x1="400" y1="150" x2="650" y2="150" stroke-dasharray="5,5"/>
-                    <line class="topology-line" x1="150" y1="150" x2="150" y2="300" stroke-dasharray="5,5"/>
-                    <line class="topology-line" x1="150" y1="300" x2="400" y2="300" stroke-dasharray="5,5"/>
-                    <line class="topology-line" x1="400" y1="300" x2="650" y2="300" stroke-dasharray="5,5"/>
-                    <line class="topology-line" x1="650" y1="150" x2="650" y2="300" stroke-dasharray="5,5"/>
-                    <line class="topology-line" x1="400" y1="150" x2="400" y2="450" stroke-dasharray="5,5"/>
-                    <line class="topology-line" x1="150" y1="300" x2="400" y2="450" stroke-dasharray="5,5"/>
-                    <line class="topology-line" x1="650" y1="300" x2="400" y2="450" stroke-dasharray="5,5"/>
-                    
-                    <!-- Bus Nodes -->
-                    <g class="topology-node" data-bus="1" data-voltage="1.04" data-frequency="60.02">
-                        <circle cx="400" cy="150" r="30" fill="url(#nodeGradient)" filter="url(#glow)" stroke="#fff" stroke-width="3"/>
-                        <text x="400" y="155" text-anchor="middle" fill="#fff" font-weight="600" font-size="14">Bus 1</text>
-                        <text x="400" y="120" text-anchor="middle" fill="var(--text-primary)" font-size="11" font-weight="600">Generator</text>
-                    </g>
-                    
-                    <g class="topology-node" data-bus="2" data-voltage="1.03" data-frequency="60.01">
-                        <circle cx="650" cy="150" r="30" fill="url(#nodeGradient)" filter="url(#glow)" stroke="#fff" stroke-width="3"/>
-                        <text x="650" y="155" text-anchor="middle" fill="#fff" font-weight="600" font-size="14">Bus 2</text>
-                        <text x="650" y="120" text-anchor="middle" fill="var(--text-primary)" font-size="11" font-weight="600">Generator</text>
-                    </g>
-                    
-                    <g class="topology-node" data-bus="3" data-voltage="1.02" data-frequency="60.00">
-                        <circle cx="150" cy="150" r="30" fill="url(#nodeGradient)" filter="url(#glow)" stroke="#fff" stroke-width="3"/>
-                        <text x="150" y="155" text-anchor="middle" fill="#fff" font-weight="600" font-size="14">Bus 3</text>
-                        <text x="150" y="120" text-anchor="middle" fill="var(--text-primary)" font-size="11" font-weight="600">Generator</text>
-                    </g>
-                    
-                    <g class="topology-node" data-bus="4" data-voltage="1.01" data-frequency="59.99">
-                        <circle cx="150" cy="300" r="30" fill="#10b981" filter="url(#glow)" stroke="#fff" stroke-width="3"/>
-                        <text x="150" y="305" text-anchor="middle" fill="#fff" font-weight="600" font-size="14">Bus 4</text>
-                        <text x="150" y="340" text-anchor="middle" fill="var(--text-primary)" font-size="11" font-weight="600">Load</text>
-                    </g>
-                    
-                    <g class="topology-node" data-bus="5" data-voltage="0.99" data-frequency="59.98">
-                        <circle cx="400" cy="300" r="30" fill="#10b981" filter="url(#glow)" stroke="#fff" stroke-width="3"/>
-                        <text x="400" y="305" text-anchor="middle" fill="#fff" font-weight="600" font-size="14">Bus 5</text>
-                        <text x="400" y="340" text-anchor="middle" fill="var(--text-primary)" font-size="11" font-weight="600">Load</text>
-                    </g>
-                    
-                    <g class="topology-node" data-bus="6" data-voltage="1.00" data-frequency="59.99">
-                        <circle cx="650" cy="300" r="30" fill="#10b981" filter="url(#glow)" stroke="#fff" stroke-width="3"/>
-                        <text x="650" y="305" text-anchor="middle" fill="#fff" font-weight="600" font-size="14">Bus 6</text>
-                        <text x="650" y="340" text-anchor="middle" fill="var(--text-primary)" font-size="11" font-weight="600">Load</text>
-                    </g>
-                    
-                    <g class="topology-node" data-bus="7" data-voltage="0.98" data-frequency="59.97">
-                        <circle cx="250" cy="450" r="30" fill="#10b981" filter="url(#glow)" stroke="#fff" stroke-width="3"/>
-                        <text x="250" y="455" text-anchor="middle" fill="#fff" font-weight="600" font-size="14">Bus 7</text>
-                        <text x="250" y="490" text-anchor="middle" fill="var(--text-primary)" font-size="11" font-weight="600">Load</text>
-                    </g>
-                    
-                    <g class="topology-node" data-bus="8" data-voltage="0.99" data-frequency="59.98">
-                        <circle cx="400" cy="450" r="30" fill="#10b981" filter="url(#glow)" stroke="#fff" stroke-width="3"/>
-                        <text x="400" y="455" text-anchor="middle" fill="#fff" font-weight="600" font-size="14">Bus 8</text>
-                        <text x="400" y="490" text-anchor="middle" fill="var(--text-primary)" font-size="11" font-weight="600">Load</text>
-                    </g>
-                    
-                    <g class="topology-node" data-bus="9" data-voltage="0.97" data-frequency="59.96">
-                        <circle cx="550" cy="450" r="30" fill="#10b981" filter="url(#glow)" stroke="#fff" stroke-width="3"/>
-                        <text x="550" y="455" text-anchor="middle" fill="#fff" font-weight="600" font-size="14">Bus 9</text>
-                        <text x="550" y="490" text-anchor="middle" fill="var(--text-primary)" font-size="11" font-weight="600">Load</text>
-                    </g>
-                </svg>
-                <div class="node-info-popup" id="nodeInfo">
-                    <h4 id="nodeName">Bus 1</h4>
-                    <p><strong>Voltage:</strong> <span id="nodeVoltage">1.04 p.u.</span></p>
-                    <p><strong>Frequency:</strong> <span id="nodeFreq">60.0 Hz</span></p>
-                    <p><strong>Status:</strong> <span id="nodeStatus">Normal</span></p>
-                </div>
-            </div>
-            <div class="dashboard-info">
-                <div class="info-card scroll-animate">
-                    <span class="info-icon">🔗</span>
-                    <h4>9 Bus Nodes</h4>
-                    <p>3 generators and 6 load buses interconnected</p>
-                </div>
-                <div class="info-card scroll-animate">
-                    <span class="info-icon">⚡</span>
-                    <h4>Real-Time Data</h4>
-                    <p>Hover over nodes to see live measurements</p>
-                </div>
-                <div class="info-card scroll-animate">
-                    <span class="info-icon">📡</span>
-                    <h4>PMU Coverage</h4>
-                    <p>30 Hz synchrophasor measurements at every bus</p>
                 </div>
             </div>
         </div>
