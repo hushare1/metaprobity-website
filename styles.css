@@ -222,7 +222,7 @@ body {
 
 .hero-stats {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 2rem;
     max-width: 800px;
     margin: 0 auto;
@@ -236,14 +236,16 @@ body {
 }
 
 .stat-value {
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
 }
 
 .stat-label {
-    font-size: 1.2rem;
+    font-size: 1.5rem;
     opacity: 0.9;
+    font-weight: 800;
+    color: yellow
 }
 
 /* Section Headers */
@@ -515,6 +517,22 @@ body {
     font-size: 1.2rem;
     font-weight: 500;
 }
+
+.features-available-now {
+  text-align: center;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.features-label {
+  font-size: 2.5rem !important;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 0.5rem !important;
+  margin-top: 2rem;
+  color: brown !important;
+}
+
 
 /* Business Section */
 .business-section {
