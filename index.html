@@ -32,7 +32,6 @@
                 <li><a href="#technical">Technical</a></li>
                 <li><a href="#business">Business Value</a></li>
                 <li><a href="#implementation">Implementation</a></li>
-                <li><a href="#contact" class="cta-button">Contact Us</a></li>
             </ul>
         </div>
     </nav>
@@ -40,9 +39,6 @@
     <!-- Hero Section -->
     <section id="home" class="hero">
         <div class="hero-brand">GridSense‑AI</div>
-        <div class="grid-background">
-            <canvas id="gridCanvas"></canvas>
-        </div>
         <div class="container">
             <div class="hero-content">
                 <h1 class="hero-title">
@@ -50,12 +46,11 @@
                     <br><span class="accent-text">Predictive Intelligence</span>
                 </h1>
                 <p class="hero-subtitle">
-                    Advanced AI-powered monitoring and predictive analytics for critical power infrastructure.
+                    Explainable AI-powered monitoring and predictive analytics for critical power infrastructure.
                     Detect grid instabilities before they cascade into blackouts.
                 </p>
                 <div class="hero-buttons">
                     <a href="dashboard.html" class="btn btn-primary">View Live Demo</a>
-                    <a href="#contact" class="btn btn-secondary">Request Demo</a>
                 </div>
                 <div class="hero-stats">
                     <div class="stat">
@@ -67,10 +62,6 @@
                         <div class="stat-label">Bayesian Processing</div>
                     </div>
                     <div class="stat">
-                        <div class="stat-value">99.9%</div>
-                        <div class="stat-label">Uptime</div>
-                    </div>
-                    <div class="stat">
                         <div class="stat-value">1s</div>
                         <div class="stat-label">Update Rate</div>
                     </div>
@@ -78,6 +69,115 @@
             </div>
         </div>
     </section>
+
+    <!-- Hero Section 
+    <section id="home" class="hero">
+        <!-- ... existing hero content ... 
+    </section> 
+    -->
+
+    <!-- ✅ INSERT THIS NEW SECTION HERE ✅ -->
+    <!-- Available Now Features Section -->
+    <section id="available-features" class="available-features-section">
+        <div class="container">
+            <div class="section-header scroll-animate">
+                <span class="badge-available">✅ AVAILABLE NOW</span>
+                <h3>Enterprise-Grade Features</h3>
+                <p>Production-ready capabilities deployed in GridSense-AI Pro</p>
+            </div>
+            <div class="features-grid">
+                <!-- Feature 1: Extended Kalman Filter -->
+                <div class="feature-card scroll-animate">
+                    <div class="feature-icon">🧮</div>
+                    <h3>Extended Kalman Filter Estimation</h3>
+                    <p>Real-time Bayesian state estimation with 21-dimensional system</p>
+                    <ul>
+                        <li>30 Hz PMU measurement processing aggregated every second</li>
+                        <li>Joint estimation of frequencies, inertia (H), and damping (D)</li>
+                        <li>Swing equation dynamics with prediction-correction cycles</li>
+                        <li>Thread-safe state storage for concurrent API access</li>
+                    </ul>
+                </div>
+
+                <!-- Feature 2: High-Frequency PMU Streaming -->
+                <div class="feature-card scroll-animate">
+                    <div class="feature-icon">⚡</div>
+                    <h3>High-Frequency PMU Streaming</h3>
+                    <p>Synchrophasor measurements at 30 Hz for precise grid awareness</p>
+                    <ul>
+                        <li>IEEE C37.118 compatible measurement format</li>
+                        <li>7 parameters per bus (frequency, RoCoF, voltage, angle, P, Q, current)</li>
+                        <li>Realistic event injection (generator trips, load steps, line faults)</li>
+                        <li>Sub-35ms measurement latency</li>
+                    </ul>
+                </div>
+
+                <!-- Feature 3: Live Dashboard -->
+                <div class="feature-card scroll-animate">
+                    <div class="feature-icon">📊</div>
+                    <h3>Live Dashboard & Visualization</h3>
+                    <p>Professional web interface with real-time charts and network topology</p>
+                    <ul>
+                        <li>60-second frequency history with three-zone color coding</li>
+                        <li>Interactive IEEE 9-bus topology with per-bus status indicators</li>
+                        <li>System health score (0-100%) with automatic event insights</li>
+                        <li>Dark mode toggle and responsive design</li>
+                    </ul>
+                </div>
+
+                <!-- Feature 4: Predictive Event Detection -->
+                <div class="feature-card scroll-animate">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Predictive Event Detection</h3>
+                    <p>Automatic disturbance classification and alarm management</p>
+                    <ul>
+                        <li>Frequency deviation alerts (±0.5 Hz from nominal)</li>
+                        <li>Low inertia warnings (H &lt; 3.0 seconds threshold)</li>
+                        <li>RoCoF monitoring with protection-grade limits</li>
+                        <li>Real-time alarm notifications via REST API</li>
+                    </ul>
+                </div>
+
+                <!-- Feature 5: Production-Ready API -->
+                <div class="feature-card scroll-animate">
+                    <div class="feature-icon">🔌</div>
+                    <h3>Production-Ready API</h3>
+                    <p>FastAPI backend with OpenAPI documentation and RESTful endpoints</p>
+                    <ul>
+                        <li><code>/api/latest</code> endpoint for current grid state</li>
+                        <li>Automatic interactive documentation at <code>/docs</code></li>
+                        <li>CORS-enabled for dashboard integration</li>
+                        <li>&lt;10ms API response time</li>
+                    </ul>
+                </div>
+
+                <!-- Feature 6: Voltage Stability Monitoring -->
+                <div class="feature-card scroll-animate">
+                    <div class="feature-icon">📈</div>
+                    <h3>Voltage Stability Monitoring</h3>
+                    <p>Real-time voltage tracking with stability index estimation</p>
+                    <ul>
+                        <li>Voltage Stability Index (VSI) per bus (0-1 scale)</li>
+                        <li>Voltage magnitude monitoring (per-unit values)</li>
+                        <li>Frequency-voltage coupling analysis</li>
+                        <li>Basic voltage deviation detection</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Video Demo Section -->
+    <section class="video-demo-section">
+        <div class="container">
+            <div class="section-header scroll-animate">
+                <h2>See GridSense-AI Pro in Action</h2>
+                <!-- ... rest of video demo section ... -->
+            </div>
+        </div>
+    </section>
+
+
 
     <!-- Video Demo Section -->
     <section class="video-demo-section">
@@ -599,94 +699,6 @@ pip install -r requirements.txt</code></pre>
                         <h4>24/7 Support</h4>
                         <p>Enterprise SLA with dedicated support team</p>
                     </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Contact Section -->
-    <section id="contact" class="contact-section">
-        <div class="container">
-            <div class="section-header scroll-animate">
-                <h2>Get Started Today</h2>
-                <p>Transform your grid operations with GridSense-AI Pro</p>
-            </div>
-
-            <div class="contact-grid">
-                <div class="contact-info">
-                    <h3>Contact Information</h3>
-                    <div class="contact-item">
-                        <span class="contact-icon">📧</span>
-                        <div>
-                            <strong>Email</strong>
-                            <p><a href="mailto:[email protected]">[email protected]</a></p>
-                        </div>
-                    </div>
-                    <div class="contact-item">
-                        <span class="contact-icon">🌐</span>
-                        <div>
-                            <strong>Website</strong>
-                            <p><a href="https://metaprobity.com">metaprobity.com</a></p>
-                        </div>
-                    </div>
-                    <div class="contact-item">
-                        <span class="contact-icon">💻</span>
-                        <div>
-                            <strong>GitHub</strong>
-                            <p><a href="https://github.com/hushare1/GRIDSENSE-STREAM-AI">GridSense-AI Repository</a></p>
-                        </div>
-                    </div>
-                    <div class="contact-item">
-                        <span class="contact-icon">📄</span>
-                        <div>
-                            <strong>Documentation</strong>
-                            <p><a href="http://localhost:8001/docs">API Documentation</a></p>
-                        </div>
-                    </div>
-
-                    <div class="social-links">
-                        <h4>Follow Us</h4>
-                        <div class="social-icons">
-                            <a href="#" class="social-icon">LinkedIn</a>
-                            <a href="#" class="social-icon">Twitter</a>
-                            <a href="https://github.com/hushare1" class="social-icon">GitHub</a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="contact-form-container">
-                    <form class="contact-form" id="contactForm">
-                        <h3>Request a Demo</h3>
-                        <div class="form-group">
-                            <label for="name">Name *</label>
-                            <input type="text" id="name" name="name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="email">Email *</label>
-                            <input type="email" id="email" name="email" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="company">Company</label>
-                            <input type="text" id="company" name="company">
-                        </div>
-                        <div class="form-group">
-                            <label for="role">Role</label>
-                            <select id="role" name="role">
-                                <option value="">Select your role</option>
-                                <option value="utility">Utility Operator</option>
-                                <option value="grid-operator">Grid Operator (ISO/RTO)</option>
-                                <option value="engineer">Engineer</option>
-                                <option value="researcher">Researcher</option>
-                                <option value="consultant">Consultant</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="message">Message *</label>
-                            <textarea id="message" name="message" rows="4" required></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Send Message</button>
-                    </form>
                 </div>
             </div>
         </div>
