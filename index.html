@@ -88,30 +88,54 @@
                 <!-- Feature 1: Extended Kalman Filter -->
                 <div class="feature-card scroll-animate">
                     <div class="feature-icon">🧮</div>
-                    <h3>Extended Kalman Filter Estimation</h3>
-                    <p>Real-time Bayesian state estimation with 21-dimensional system</p>
+                    <h3>Explainable AI - Bayesian Swing Equation</h3>
+                    <p>GridSense-AI doesn't just give you answers — it shows how its working.</p>
                     <ul>
-                        <li>30 Hz PMU measurement processing aggregated every second</li>
-                        <li>Joint estimation of frequencies, inertia (H), and damping (D)</li>
-                        <li>Swing equation dynamics with prediction-correction cycles</li>
-                        <li>Thread-safe state storage for concurrent API access</li>
+                        <li>Bayesian uncertainty tracked after every 1-second measurement fusion cycle</li>
+                        <li>Swing equation sensitivity map (Jacobian) rebuilt every second per bus</li>
+                        <li>Kalman gain auto-balances PMU readings vs model predictions</li>                        
                     </ul>
                 </div>
 
-                <!-- Feature 2: High-Frequency PMU Streaming -->
+                <!-- Feature 2: Predictive Event Detection -->
+                <div class="feature-card scroll-animate">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Predictive Alarm & Stability Monitoring</h3>
+                    <p>Bayesian + Jacobian disturbance forecasting and threshold alerting.</p>
+                    <ul>
+                        <li>Frequency deviation alerts (±0.5 Hz from 50 Hz nominal) per bus</li>
+                        <li>Low inertia early warning (H < 3.0 s threshold) from Bayesian posterior</li>
+                        <li>RoCoF tracked per bus via 30 Hz PMU aggregation</li>
+                        <li>Instant operator alerts the moment grid conditions exceed safe limits</li>
+                    </ul>
+                </div>
+                
+
+                <!-- Feature 3: Alarm & Event Detection Logic -->
                 <div class="feature-card scroll-animate">
                     <div class="feature-icon">⚡</div>
-                    <h3>High-Frequency PMU Streaming</h3>
-                    <p>Synchrophasor measurements at 30 Hz for precise grid awareness</p>
+                    <h3>Alarm & Event Detection Logic</h3>
+                    <p>Automated disturbance classification and real-time alerting from Bayesian state tracking.</p>
                     <ul>
-                        <li>IEEE C37.118 compatible measurement format</li>
-                        <li>7 parameters per bus (frequency, RoCoF, voltage, angle, P, Q, current)</li>
-                        <li>Realistic event injection (generator trips, load steps, line faults)</li>
-                        <li>Sub-35ms measurement latency</li>
+                    <li>Frequency alarm triggered when any bus deviates outside limits</li>
+                    <li>Low inertia early warning when estimated Inertia drops below 3 seconds</li>
+                    <li>Instant operator notifications the moment grid conditions breach safety limits</li>                    </ul>
+                </div>
+
+                <!-- Feature 4: Voltage Stability Monitoring -->
+                <div class="feature-card scroll-animate">
+                    <div class="feature-icon">📈</div>
+                    <h3>Voltage Stability Monitoring</h3>
+                    <p>Real-time voltage tracking with stability index estimation</p>
+                    <ul>
+                        <li>Voltage Stability Index (VSI) per bus (0-1 scale)</li>
+                        <li>Voltage magnitude monitoring (per-unit values)</li>
+                        <li>Frequency-voltage coupling analysis</li>
+                        <li>Basic voltage deviation detection</li>
                     </ul>
                 </div>
 
-                <!-- Feature 3: Live Dashboard -->
+                <!-- Feature 5: Live Dashboard -->
                 <div class="feature-card scroll-animate">
                     <div class="feature-icon">📊</div>
                     <h3>Live Dashboard & Visualization</h3>
@@ -124,175 +148,24 @@
                     </ul>
                 </div>
 
-                <!-- Feature 4: Predictive Event Detection -->
-                <div class="feature-card scroll-animate">
-                    <div class="feature-icon">🎯</div>
-                    <h3>Predictive Event Detection</h3>
-                    <p>Automatic disturbance classification and alarm management</p>
-                    <ul>
-                        <li>Frequency deviation alerts (±0.5 Hz from nominal)</li>
-                        <li>Low inertia warnings (H &lt; 3.0 seconds threshold)</li>
-                        <li>RoCoF monitoring with protection-grade limits</li>
-                        <li>Real-time alarm notifications via REST API</li>
-                    </ul>
-                </div>
 
-                <!-- Feature 5: Production-Ready API -->
+                <!-- Feature 6: Open Integration & Scalable Architecture -->
                 <div class="feature-card scroll-animate">
                     <div class="feature-icon">🔌</div>
-                    <h3>Production-Ready API</h3>
-                    <p>FastAPI backend with OpenAPI documentation and RESTful endpoints</p>
+                    <h3>Open Integration & Scalable Architecture</h3>
+                    <p>Non-intrusive, API-first design built for real-world grid deployment</p>
                     <ul>
-                        <li><code>/api/latest</code> endpoint for current grid state</li>
-                        <li>Automatic interactive documentation at <code>/docs</code></li>
-                        <li>CORS-enabled for dashboard integration</li>
-                        <li>&lt;10ms API response time</li>
-                    </ul>
-                </div>
-
-                <!-- Feature 6: Voltage Stability Monitoring -->
-                <div class="feature-card scroll-animate">
-                    <div class="feature-icon">📈</div>
-                    <h3>Voltage Stability Monitoring</h3>
-                    <p>Real-time voltage tracking with stability index estimation</p>
-                    <ul>
-                        <li>Voltage Stability Index (VSI) per bus (0-1 scale)</li>
-                        <li>Voltage magnitude monitoring (per-unit values)</li>
-                        <li>Frequency-voltage coupling analysis</li>
-                        <li>Basic voltage deviation detection</li>
+                        <li>Read-only passive monitoring — zero interference with existing SCADA, EMS or protection systems</li>
+                        <li>REST API delivers live grid intelligence, with '&lt;10ms' latency, to any SCADA, HMI or 3rd party system</li>
+                        <li>Can scale from 9-bus prototype to national grid topology with minimal configuration updates</li>
+                        <li>Modular, plug-and-play components — swap PMU, estimation engine or dashboard without touching the rest</li>
                     </ul>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Video Demo Section -->
-    <section class="video-demo-section">
-        <div class="container">
-            <div class="section-header scroll-animate">
-                <h2>See GridSense-AI Pro in Action</h2>
-                <!-- ... rest of video demo section ... -->
-            </div>
-        </div>
-    </section>
-
-
-
-    <!-- Video Demo Section -->
-    <section class="video-demo-section">
-        <div class="container">
-            <div class="section-header scroll-animate">
-                <h2>See GridSense-AI Pro in Action</h2>
-                <p>Watch how our system detects and responds to grid events in real-time</p>
-            </div>
-            <div class="video-wrapper scroll-animate-scale">
-                <div class="video-placeholder" id="videoPlaceholder">
-                    <div class="play-icon">▶</div>
-                    <div class="play-text">Watch Demo Video</div>
-                    <div style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.8;">
-                        Real-time grid monitoring and event detection
-                    </div>
-                </div>
-                <!-- Video will be loaded here when clicked -->
-            </div>
-            <div class="features-grid" style="margin-top: 3rem;">
-                <div class="feature-card scroll-animate">
-                    <div class="feature-icon">⚠️</div>
-                    <h3>Event Detection</h3>
-                    <p>See how the system automatically detects frequency drops, voltage sags, and generator trips</p>
-                </div>
-                <div class="feature-card scroll-animate">
-                    <div class="feature-icon">📊</div>
-                    <h3>Live Visualization</h3>
-                    <p>Watch real-time charts update with PMU measurements and EKF state estimates</p>
-                </div>
-                <div class="feature-card scroll-animate">
-                    <div class="feature-icon">🎯</div>
-                    <h3>Predictive Alerts</h3>
-                    <p>Experience AI-powered predictions warning of potential stability issues</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Features Section -->
-    <section id="features" class="features-section">
-        <div class="container">
-            <div class="section-header scroll-animate">
-                <h2>Enterprise-Grade Features</h2>
-                <p>Built for utilities, grid operators, and energy companies</p>
-            </div>
-            <div class="features-grid">
-                <div class="feature-card scroll-animate">
-                    <div class="feature-icon">⚡</div>
-                    <h3>High-Frequency PMU Streaming</h3>
-                    <p>Real-time phasor measurement data at 30 Hz (every 33ms) for precise grid state awareness</p>
-                    <ul>
-                        <li>Synchrophasor measurements</li>
-                        <li>Voltage and frequency tracking</li>
-                        <li>Phase angle monitoring</li>
-                        <li>IEEE C37.118 compatible</li>
-                    </ul>
-                </div>
-                <div class="feature-card scroll-animate">
-                    <div class="feature-icon">🧠</div>
-                    <h3>Extended Kalman Filter</h3>
-                    <p>Advanced state estimation with intelligent filtering for accurate grid parameter tracking</p>
-                    <ul>
-                        <li>Frequency & RoCoF estimation</li>
-                        <li>Grid inertia (H) calculation</li>
-                        <li>Damping coefficient (D) tracking</li>
-                        <li>Voltage stability index (VSI)</li>
-                    </ul>
-                </div>
-                <div class="feature-card scroll-animate">
-                    <div class="feature-icon">📈</div>
-                    <h3>Predictive Analytics</h3>
-                    <p>AI-powered insights for proactive grid management and event prediction</p>
-                    <ul>
-                        <li>Automatic disturbance detection</li>
-                        <li>Event classification</li>
-                        <li>Stability assessment</li>
-                        <li>Cascading failure prevention</li>
-                    </ul>
-                </div>
-                <div class="feature-card scroll-animate">
-                    <div class="feature-icon">🎨</div>
-                    <h3>Professional Dashboard</h3>
-                    <p>Intuitive web interface with real-time visualizations and interactive topology</p>
-                    <ul>
-                        <li>Live frequency deviation charts</li>
-                        <li>Network topology visualization</li>
-                        <li>Grid health scoring (0-100%)</li>
-                        <li>Per-bus sparkline indicators</li>
-                    </ul>
-                </div>
-                <div class="feature-card scroll-animate">
-                    <div class="feature-icon">🔌</div>
-                    <h3>RESTful API</h3>
-                    <p>Modern FastAPI backend for seamless integration with existing systems</p>
-                    <ul>
-                        <li>Real-time state endpoints</li>
-                        <li>Historical data queries</li>
-                        <li>WebSocket support</li>
-                        <li>OpenAPI documentation</li>
-                    </ul>
-                </div>
-                <div class="feature-card scroll-animate">
-                    <div class="feature-icon">🔒</div>
-                    <h3>Production-Ready</h3>
-                    <p>Enterprise-grade architecture designed for critical infrastructure</p>
-                    <ul>
-                        <li>Thread-safe state management</li>
-                        <li>Scalable microservices</li>
-                        <li>High availability design</li>
-                        <li>Security best practices</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </section>
-
+   
     <!-- Technical Details Section -->
     <section id="technical" class="technical-section">
         <div class="container">
@@ -302,6 +175,49 @@
             </div>
             
             <div class="tech-grid">
+                <div class="tech-card scroll-animate">
+                    <h3>Performance Metrics</h3>
+                    <table class="performance-table">
+                        <tr>
+                            <td>PMU Latency</td>
+                            <td><strong>&lt; 35ms</strong></td>
+                        </tr>
+                        <tr>
+                            <td>EKF Processing Time</td>
+                            <td><strong>&lt; 50ms</strong></td>
+                        </tr>
+                        <tr>
+                            <td>API Response Time</td>
+                            <td><strong>&lt; 10ms</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Dashboard Refresh Rate</td>
+                            <td><strong>1 Hz</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Memory Footprint</td>
+                            <td><strong>~50 MB</strong></td>
+                        </tr>
+                        <tr>
+                            <td>CPU Usage</td>
+                            <td><strong>&lt; 5%</strong></td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="tech-card scroll-animate">
+                    <h3>IEEE 9-Bus Test System</h3>
+                    <p>Based on the WSCC 9-bus test case, a standard benchmark for power system analysis:</p>
+                    <ul>
+                        <li><strong>3 Generators</strong> - Buses 1, 2, 3</li>
+                        <li><strong>3 Loads</strong> - Buses 5, 6, 8</li>
+                        <li><strong>9 Transmission Lines</strong> - Interconnected network</li>
+                        <li><strong>Base MVA:</strong> 100 MVA</li>
+                        <li><strong>Nominal Frequency:</strong> 50 Hz (configurable to 60 Hz)</li>
+                        <li><strong>Voltage Levels:</strong> 18 kV, 230 kV</li>
+                    </ul>
+                </div>
+                
                 <div class="tech-card scroll-animate">
                     <h3>System Components</h3>
                     <div class="component-list">
@@ -378,48 +294,7 @@
                     </div>
                 </div>
 
-                <div class="tech-card scroll-animate">
-                    <h3>Performance Metrics</h3>
-                    <table class="performance-table">
-                        <tr>
-                            <td>PMU Latency</td>
-                            <td><strong>&lt; 35ms</strong></td>
-                        </tr>
-                        <tr>
-                            <td>EKF Processing Time</td>
-                            <td><strong>&lt; 50ms</strong></td>
-                        </tr>
-                        <tr>
-                            <td>API Response Time</td>
-                            <td><strong>&lt; 10ms</strong></td>
-                        </tr>
-                        <tr>
-                            <td>Dashboard Refresh Rate</td>
-                            <td><strong>1 Hz</strong></td>
-                        </tr>
-                        <tr>
-                            <td>Memory Footprint</td>
-                            <td><strong>~50 MB</strong></td>
-                        </tr>
-                        <tr>
-                            <td>CPU Usage</td>
-                            <td><strong>&lt; 5%</strong></td>
-                        </tr>
-                    </table>
-                </div>
-
-                <div class="tech-card scroll-animate">
-                    <h3>IEEE 9-Bus Test System</h3>
-                    <p>Based on the WSCC 9-bus test case, a standard benchmark for power system analysis:</p>
-                    <ul>
-                        <li><strong>3 Generators</strong> - Buses 1, 2, 3</li>
-                        <li><strong>3 Loads</strong> - Buses 5, 6, 8</li>
-                        <li><strong>9 Transmission Lines</strong> - Interconnected network</li>
-                        <li><strong>Base MVA:</strong> 100 MVA</li>
-                        <li><strong>Nominal Frequency:</strong> 50 Hz (configurable to 60 Hz)</li>
-                        <li><strong>Voltage Levels:</strong> 18 kV, 230 kV</li>
-                    </ul>
-                </div>
+                
             </div>
 
             <div class="tech-stack">
