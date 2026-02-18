@@ -5,7 +5,7 @@
     --primary-dark: #4f46e5;
     --primary-light: #818cf8;
     --secondary-color: #8b5cf6;
-    --accent-color: #ec4899;
+    --accent-color: #8B4513;
     --success-color: #10b981;
     --warning-color: #f59e0b;
     --danger-color: #ef4444;
@@ -23,7 +23,7 @@
     
     --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     --gradient-2: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-    --gradient-3: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --gradient-3: linear-gradient(135deg, #A0522D 0%, #8B4513 100%);
     
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -391,6 +391,7 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
     gap: 2rem;
+    color:black;
 }
 
 .tech-card {
