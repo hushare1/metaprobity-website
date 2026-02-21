@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GridSense-AI — Operator Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* ── Design tokens (mirrors styles.css variables) ─────────────────── */
+    :root {
+      --primary-color:  #6366f1;
+      --primary-dark:   #4f46e5;
+      --primary-light:  #818cf8;
+      --secondary-color:#8b5cf6;
+      --success-color:  #10b981;
+      --warning-color:  #f59e0b;
+      --danger-color:   #ef4444;
+
+      --gray-50:  #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+
+      --gradient-2: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+
+      --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,.10);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,.10);
+      --shadow-xl: 0 20px 25px -5px rgba(0,0,0,.10);
+
+      --radius:    8px;
+      --radius-lg: 12px;
+      --transition: all 0.3s ease;
+
+      /* traffic-light palette */
+      --tl-normal:   #10b981;
+      --tl-stressed: #f59e0b;
+      --tl-critical: #ef4444;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-800);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Top strip ───────────────────────────────────────────────────────── */
+    .top-strip {
+      background: var(--gray-900);
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-icon { font-size: 1.8rem; }
+
+    .brand-name {
+      font-size: 1.2rem;
+      font-weight: 700;
+      background: var(--gradient-2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .brand-sub {
+      font-size: 0.75rem;
+      color: var(--gray-400);
+      margin-top: 2px;
+    }
+
+    .status-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+      min-width: 280px;
+    }
+
+    .status-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--gray-400);
+      font-weight: 600;
+    }
+
+    .status-text {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      transition: color 0.4s ease;
+    }
+
+    .status-text.normal   { color: var(--tl-normal);   }
+    .status-text.stressed { color: var(--tl-stressed);  }
+    .status-text.critical {
+      color: var(--tl-critical);
+      animation: flash-critical 1s infinite;
+    }
+
+    @keyframes flash-critical {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.5; }
+    }
+
+    .risk-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 320px;
+    }
+
+    .risk-label {
+      font-size: 0.85rem;
+      color: var(--gray-300);
+      white-space: nowrap;
+    }
+
+    .risk-bar-wrap {
+      flex: 1;
+      height: 10px;
+      background: var(--gray-700);
+      border-radius: 99px;
+      overflow: hidden;
+      min-width: 140px;
+    }
+
+    .risk-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.6s ease, background 0.4s ease;
+    }
+
+    .risk-pct {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: white;
+      min-width: 44px;
+      text-align: right;
+    }
+
+    .risk-level {
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 99px;
+      white-space: nowrap;
+    }
+
+    .risk-level.low    { background: rgba(16,185,129,.2);  color: var(--tl-normal);   }
+    .risk-level.medium { background: rgba(245,158,11,.2);  color: var(--tl-stressed); }
+    .risk-level.high   { background: rgba(239,68,68,.2);   color: var(--tl-critical); }
+
+    .timestamp-badge {
+      font-size: 0.75rem;
+      color: var(--gray-400);
+      white-space: nowrap;
+    }
+
+    /* ── Main body ───────────────────────────────────────────────────────── */
+    .main-body {
+      flex: 1;
+      padding: 24px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .middle-row {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .middle-row { grid-template-columns: 1fr; }
+    }
+
+    /* ── Section title ───────────────────────────────────────────────────── */
+    .section-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--gray-500);
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    /* ── Metric tiles ────────────────────────────────────────────────────── */
+    .metric-tiles {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 1100px) {
+      .metric-tiles { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .tile {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 20px 18px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--gray-200);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tile:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .tile::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--gradient-2);
+      border-radius: 4px 0 0 4px;
+    }
+
+    .tile.warn::before  { background: var(--tl-stressed); }
+    .tile.alert::before { background: var(--tl-critical); }
+    .tile.good::before  { background: var(--tl-normal); }
+
+    .tile-icon  { font-size: 1.4rem; margin-bottom: 8px; display: block; }
+    .tile-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--gray-500);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .tile-value {
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: var(--gray-900);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .tile-unit {
+      font-size: 0.85rem;
+      color: var(--gray-400);
+      margin-bottom: 6px;
+    }
+
+    .tile-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-normal   { background: rgba(16,185,129,.1);  color: var(--tl-normal);   }
+    .badge-warn     { background: rgba(245,158,11,.1);  color: var(--tl-stressed); }
+    .badge-critical { background: rgba(239,68,68,.1);   color: var(--tl-critical); }
+
+    /* ── Hotspots panel ──────────────────────────────────────────────────── */
+    .hotspots-panel {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--gray-200);
+    }
+
+    .hotspot-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .hotspot-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: var(--radius);
+      background: var(--gray-50);
+      border-left: 3px solid var(--gray-300);
+      transition: var(--transition);
+    }
+
+    .hotspot-item.hs-warn   { border-left-color: var(--tl-stressed); background: rgba(245,158,11,.06); }
+    .hotspot-item.hs-alert  { border-left-color: var(--tl-critical); background: rgba(239,68,68,.06); }
+    .hotspot-item.hs-normal { border-left-color: var(--tl-normal);   background: rgba(16,185,129,.06); }
+
+    .hotspot-rank {
+      font-size: 0.7rem;
+      font-weight: 800;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--gray-200);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      color: var(--gray-600);
+    }
+
+    .hotspot-info { flex: 1; min-width: 0; }
+
+    .hotspot-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--gray-900);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .hotspot-desc {
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      margin-top: 2px;
+    }
+
+    .hotspot-value {
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .hotspot-value.hv-warn   { color: var(--tl-stressed); }
+    .hotspot-value.hv-alert  { color: var(--tl-critical); }
+    .hotspot-value.hv-normal { color: var(--tl-normal); }
+
+    .no-hotspots {
+      font-size: 0.85rem;
+      color: var(--gray-500);
+      text-align: center;
+      padding: 12px;
+    }
+
+    /* ── Charts row ──────────────────────────────────────────────────────── */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 700px) {
+      .charts-row { grid-template-columns: 1fr; }
+    }
+
+    .chart-card {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--gray-200);
+    }
+
+    .chart-card .section-title { margin-bottom: 10px; }
+
+    .chart-wrap {
+      position: relative;
+      height: 160px;
+    }
+
+    /* ── Alarm banner ────────────────────────────────────────────────────── */
+    .alarm-banner {
+      display: none;
+      background: rgba(239,68,68,.12);
+      border: 1px solid rgba(239,68,68,.4);
+      border-radius: var(--radius);
+      padding: 10px 16px;
+      color: var(--tl-critical);
+      font-size: 0.9rem;
+      font-weight: 600;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .alarm-banner.visible { display: flex; }
+
+    /* ── Connection error overlay ────────────────────────────────────────── */
+    .conn-error {
+      display: none;
+      font-size: 0.75rem;
+      color: var(--tl-critical);
+      font-weight: 600;
+    }
+    .conn-error.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════ TOP STRIP ═══════════════════════════════ -->
+<div class="top-strip">
+
+  <!-- Brand -->
+  <div class="brand">
+    <span class="brand-icon">⚡</span>
+    <div>
+      <div class="brand-name">GridSense-AI</div>
+      <div class="brand-sub">Operator Dashboard</div>
+    </div>
+  </div>
+
+  <!-- Status + Risk -->
+  <div class="status-block">
+    <div class="status-label">Stability nowcast</div>
+    <div class="status-text normal" id="statusText">Normal</div>
+    <div style="display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap; justify-content:center;">
+      <span class="risk-label">Risk of instability in next 1–5 min</span>
+      <span class="risk-pct" id="riskPct">—%</span>
+      <span class="risk-level low" id="riskLevel">Low</span>
+    </div>
+    <div class="risk-bar-wrap" style="width:280px; margin-top:6px;">
+      <div class="risk-bar-fill" id="riskBar" style="width:0%; background:var(--tl-normal);"></div>
+    </div>
+  </div>
+
+  <!-- Right meta -->
+  <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+    <div class="timestamp-badge" id="tsDisplay">Waiting for data…</div>
+    <div class="conn-error" id="connError">⚠ Cannot reach /api/latest</div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════ MAIN BODY ═══════════════════════════════ -->
+<div class="main-body">
+
+  <!-- Alarm banner (shown only when alarm_flag = true) -->
+  <div class="alarm-banner" id="alarmBanner">
+    <span>🚨</span>
+    <span id="alarmText">—</span>
+  </div>
+
+  <!-- ── Middle row: tiles + hotspots ─────────────────────────────────── -->
+  <div class="middle-row">
+
+    <!-- Metric tiles (left) -->
+    <div>
+      <div class="section-title">Live Metrics</div>
+      <div class="metric-tiles">
+
+        <!-- Tile 1: System Frequency -->
+        <div class="tile" id="tileFreq">
+          <span class="tile-icon">📡</span>
+          <div class="tile-label">System Frequency</div>
+          <div class="tile-value" id="metFreq">—</div>
+          <div class="tile-unit">Hz</div>
+          <span class="tile-badge badge-normal" id="metFreqBadge">Nominal</span>
+        </div>
+
+        <!-- Tile 2: Average RoCoF -->
+        <div class="tile" id="tileRocof">
+          <span class="tile-icon">📈</span>
+          <div class="tile-label">Avg RoCoF</div>
+          <div class="tile-value" id="metRocof">—</div>
+          <div class="tile-unit">Hz/s</div>
+          <span class="tile-badge badge-normal" id="metRocofBadge">Normal</span>
+        </div>
+
+        <!-- Tile 3: System Inertia H -->
+        <div class="tile" id="tileInertia">
+          <span class="tile-icon">🔋</span>
+          <div class="tile-label">System Inertia H</div>
+          <div class="tile-value" id="metH">—</div>
+          <div class="tile-unit">seconds</div>
+          <span class="tile-badge badge-normal" id="metHBadge">Adequate</span>
+        </div>
+
+        <!-- Tile 4: Worst VSI -->
+        <div class="tile" id="tileVsi">
+          <span class="tile-icon">🔌</span>
+          <div class="tile-label">Worst Bus VSI</div>
+          <div class="tile-value" id="metVsi">—</div>
+          <div class="tile-unit">index  <span id="metVsiBus" style="font-size:0.7rem; color:var(--gray-400);">—</span></div>
+          <span class="tile-badge badge-normal" id="metVsiBadge">Stable</span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Hotspots panel (right) -->
+    <div class="hotspots-panel">
+      <div class="section-title">Top 3 Hotspots</div>
+      <div class="hotspot-list" id="hotspotList">
+        <div class="no-hotspots">Awaiting data…</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Charts row ────────────────────────────────────────────────────── -->
+  <div class="charts-row">
+
+    <div class="chart-card">
+      <div class="section-title">Stability Risk Index (0 – 100)</div>
+      <div class="chart-wrap">
+        <canvas id="chartRisk"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="section-title">System Frequency (Hz)</div>
+      <div class="chart-wrap">
+        <canvas id="chartFreq"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /main-body -->
+
+
+<!-- ═══════════════════════════ JAVASCRIPT ══════════════════════════════ -->
+<script>
+'use strict';
+
+/* ── Config ────────────────────────────────────────────────────────────── */
+const API_URL      = 'http://localhost:8001/api/latest';
+const POLL_MS      = 1000;
+const CHART_WINDOW = 60;   // rolling seconds kept in charts
+
+/* ── Rolling history arrays (used by Chart.js) ──────────────────────────── */
+const riskHistory = new Array(CHART_WINDOW).fill(null);
+const freqHistory = new Array(CHART_WINDOW).fill(null);
+
+/* ── Chart helpers ──────────────────────────────────────────────────────── */
+function makeTimeLabels() {
+  return Array.from({ length: CHART_WINDOW }, (_, i) => `-${CHART_WINDOW - 1 - i}s`);
+}
+
+function buildChart(canvasId, colour, yMin, yMax, unitLabel) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  return new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: makeTimeLabels(),
+      datasets: [{
+        data: new Array(CHART_WINDOW).fill(null),
+        borderColor: colour,
+        backgroundColor: colour + '22',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.35,
+        fill: true,
+      }]
+    },
+    options: {
+      animation: false,
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.parsed.y !== null
+              ? `${ctx.parsed.y.toFixed(3)} ${unitLabel}`
+              : '—'
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { maxTicksLimit: 7, font: { size: 10 }, color: '#9ca3af' }, grid: { color: '#f3f4f6' } },
+        y: { min: yMin, max: yMax, ticks: { font: { size: 10 }, color: '#9ca3af' }, grid: { color: '#f3f4f6' } }
+      }
+    }
+  });
+}
+
+const riskChart = buildChart('chartRisk', '#8b5cf6',  0,    100, '');
+const freqChart = buildChart('chartFreq', '#6366f1', 49.7, 50.3, 'Hz');
+
+function pushToChart(chart, historyArr, value) {
+  historyArr.push(value);
+  if (historyArr.length > CHART_WINDOW) historyArr.shift();
+  chart.data.datasets[0].data = [...historyArr];
+  chart.update('none');
+}
+
+/* ── Risk score — additive point model ────────────────────────────────── */
+/*
+ *  +40  if systemFreq is outside [49.8, 50.2] Hz
+ *  +30  if any |rocof_bus| > 0.5 Hz/s
+ *  +20  if H_system < 3.0 s
+ *  +10  if minVsi < 0.3
+ *  Clamped to [0, 100].
+ */
+function computeRisk(d) {
+  const systemFreq = d.freq_bus.reduce((a, b) => a + b, 0) / d.freq_bus.length;
+  const maxAbsRocof = Math.max(...d.rocof_bus.map(Math.abs));
+  const minVsi = Math.min(...d.v_stab_index_bus);
+
+  let score = 0;
+  if (systemFreq < 49.8 || systemFreq > 50.2) score += 40;
+  if (maxAbsRocof > 0.5)                       score += 30;
+  if (d.H_system < 3.0)                        score += 20;
+  if (minVsi < 0.3)                            score += 10;
+
+  return Math.min(score, 100);
+}
+
+/* ── Status → label / colour ──────────────────────────────────────────── */
+/*
+ *  0–30   → Normal   (green)
+ *  31–70  → Stressed (amber)
+ *  71–100 → Critical (red, flashes)
+ */
+function classifyRisk(score) {
+  if (score <= 30)  return 'normal';
+  if (score <= 70)  return 'stressed';
+  return 'critical';
+}
+
+/* ── DOM shorthand ──────────────────────────────────────────────────────── */
+function el(id) { return document.getElementById(id); }
+
+/* ── Top-strip: status text ─────────────────────────────────────────────── */
+function updateStatusText(level) {
+  const st = el('statusText');
+  const labels = { normal: 'Normal', stressed: 'Stressed', critical: 'Critical' };
+  st.textContent = 'Stability nowcast: ' + labels[level];
+  st.className = 'status-text ' + level;
+}
+
+/* ── Top-strip: risk bar + pill ─────────────────────────────────────────── */
+function updateRiskBar(score, level) {
+  el('riskPct').textContent = score + '%';
+
+  const bar = el('riskBar');
+  bar.style.width = score + '%';
+
+  const colours  = { normal: 'var(--tl-normal)', stressed: 'var(--tl-stressed)', critical: 'var(--tl-critical)' };
+  const pillText = { normal: 'Low',              stressed: 'Medium',             critical: 'High'               };
+  const pillCls  = { normal: 'risk-level low',   stressed: 'risk-level medium',  critical: 'risk-level high'    };
+
+  bar.style.background      = colours[level];
+  el('riskLevel').textContent = pillText[level];
+  el('riskLevel').className   = pillCls[level];
+}
+
+/* ── Tile badge helpers ─────────────────────────────────────────────────── */
+function tileBorderClass(sev) {
+  if (sev === 'critical') return 'tile alert';
+  if (sev === 'warn')     return 'tile warn';
+  return 'tile good';
+}
+
+function badgeCls(sev) {
+  if (sev === 'critical') return 'tile-badge badge-critical';
+  if (sev === 'warn')     return 'tile-badge badge-warn';
+  return 'tile-badge badge-normal';
+}
+
+/* ── Metric tiles ───────────────────────────────────────────────────────── */
+function updateTiles(d) {
+  // ── 1. System Frequency ──
+  // Derived: average of freq_bus
+  // Badge: "Nominal" inside [49.8, 50.2], "High" if > 50.2, "Low" if < 49.8
+  const systemFreq = d.freq_bus.reduce((a, b) => a + b, 0) / d.freq_bus.length;
+  let freqSev, freqLabel;
+  if (systemFreq < 49.8) {
+    freqSev = 'critical'; freqLabel = 'Low';
+  } else if (systemFreq > 50.2) {
+    freqSev = 'critical'; freqLabel = 'High';
+  } else if (systemFreq < 49.9 || systemFreq > 50.1) {
+    freqSev = 'warn'; freqLabel = systemFreq < 50.0 ? 'Low' : 'High';
+  } else {
+    freqSev = 'ok'; freqLabel = 'Nominal';
+  }
+  el('metFreq').textContent        = systemFreq.toFixed(3);
+  el('metFreqBadge').textContent   = freqLabel;
+  el('metFreqBadge').className     = badgeCls(freqSev);
+  el('tileFreq').className         = tileBorderClass(freqSev);
+
+  // ── 2. Average |RoCoF| ──
+  // Derived: mean of absolute values of rocof_bus
+  // Badge: "Calm" if avgRocof ≤ 0.1, "Fast" if > 0.1
+  const avgRocof = d.rocof_bus.reduce((a, b) => a + Math.abs(b), 0) / d.rocof_bus.length;
+  const maxAbsRocof = Math.max(...d.rocof_bus.map(Math.abs));
+  const rocofSev    = maxAbsRocof > 0.5 ? 'critical' : maxAbsRocof > 0.1 ? 'warn' : 'ok';
+  const rocofLabel  = avgRocof <= 0.1 ? 'Calm' : 'Fast';
+  el('metRocof').textContent       = avgRocof.toFixed(3);
+  el('metRocofBadge').textContent  = rocofLabel;
+  el('metRocofBadge').className    = badgeCls(rocofSev);
+  el('tileRocof').className        = tileBorderClass(rocofSev);
+
+  // ── 3. System Inertia H ──
+  // Thresholds: Low < 2.5 s | Adequate 2.5–5.0 s | High > 5.0 s
+  const H = d.H_system;
+  let hSev, hLabel;
+  if (H < 2.5) {
+    hSev = 'critical'; hLabel = 'Low';
+  } else if (H <= 5.0) {
+    hSev = 'ok'; hLabel = 'Adequate';
+  } else {
+    hSev = 'ok'; hLabel = 'High';
+  }
+  // Flag as warn when H is within the risk window (< 3.0) but not critically low
+  if (H >= 2.5 && H < 3.0) { hSev = 'warn'; hLabel = 'Low'; }
+  el('metH').textContent           = H.toFixed(2);
+  el('metHBadge').textContent      = hLabel;
+  el('metHBadge').className        = badgeCls(hSev);
+  el('tileInertia').className      = tileBorderClass(hSev);
+
+  // ── 4. Worst Bus VSI ──
+  // Find minimum v_stab_index_bus and which bus it belongs to
+  const minVsi    = Math.min(...d.v_stab_index_bus);
+  const minVsiIdx = d.v_stab_index_bus.indexOf(minVsi);
+  const minVsiBusId = d.buses[minVsiIdx] ? d.buses[minVsiIdx].bus_id : minVsiIdx + 1;
+  const vsiSev    = minVsi < 0.3 ? 'critical' : minVsi < 0.6 ? 'warn' : 'ok';
+  const vsiLabel  = vsiSev === 'critical' ? 'Critical' : vsiSev === 'warn' ? 'Marginal' : 'Stable';
+  el('metVsi').textContent         = minVsi.toFixed(3);
+  el('metVsiBus').textContent      = 'Bus ' + minVsiBusId;
+  el('metVsiBadge').textContent    = vsiLabel;
+  el('metVsiBadge').className      = badgeCls(vsiSev);
+  el('tileVsi').className          = tileBorderClass(vsiSev);
+}
+
+/* ── Top 3 hotspots ─────────────────────────────────────────────────────── */
+/*
+ *  Entries 1-3: the 3 buses with lowest v_stab_index_bus
+ *               "Bus N – VSI 0.xxx (watch voltage margin)"
+ *  Entry 4 (optional, replaces rank 3 if more urgent):
+ *               the line with highest loading_pct, if loading_pct > 70 %
+ */
+function deriveHotspots(d) {
+  // Sort buses ascending by VSI → worst first
+  const vsiBuses = d.v_stab_index_bus
+    .map((vsi, i) => ({ vsi, busId: d.buses[i] ? d.buses[i].bus_id : i + 1 }))
+    .sort((a, b) => a.vsi - b.vsi);
+
+  const items = vsiBuses.slice(0, 3).map(b => {
+    const sev = b.vsi < 0.3 ? 'alert' : b.vsi < 0.6 ? 'warn' : 'normal';
+    return {
+      name:     `Bus ${b.busId} – VSI ${b.vsi.toFixed(3)}`,
+      desc:     'watch voltage margin',
+      value:    b.vsi.toFixed(3),
+      sev,
+      valueCls: sev === 'alert' ? 'hv-alert' : sev === 'warn' ? 'hv-warn' : 'hv-normal'
+    };
+  });
+
+  // If there are lines and the most-loaded one is notable (> 70 %), append/replace last
+  if (d.lines && d.lines.length) {
+    const topLine = [...d.lines].sort((a, b) => b.loading_pct - a.loading_pct)[0];
+    if (topLine.loading_pct > 70) {
+      const sev = topLine.loading_pct >= 100 ? 'alert' : topLine.loading_pct >= 80 ? 'warn' : 'normal';
+      if (sev !== 'normal') {
+        const lineEntry = {
+          name:     `Line ${topLine.from_bus}–${topLine.to_bus} (${topLine.loading_pct.toFixed(1)}%)`,
+          desc:     topLine.loading_pct >= 100 ? 'overloaded — thermal limit exceeded'
+                                               : 'high loading — approaching thermal limit',
+          value:    topLine.loading_pct.toFixed(1) + '%',
+          sev,
+          valueCls: sev === 'alert' ? 'hv-alert' : 'hv-warn'
+        };
+        // Replace the least-bad bus entry with the line entry if the line is more severe
+        const sevOrder = { alert: 0, warn: 1, normal: 2 };
+        if (sevOrder[lineEntry.sev] <= sevOrder[items[items.length - 1].sev]) {
+          items[items.length - 1] = lineEntry;
+        }
+      }
+    }
+  }
+
+  return items;
+}
+
+function renderHotspots(hotspots) {
+  const list = el('hotspotList');
+  if (!hotspots.length) {
+    list.innerHTML = '<div class="no-hotspots">✅ No hotspots — system within limits</div>';
+    return;
+  }
+  list.innerHTML = hotspots.map((h, i) => `
+    <div class="hotspot-item hs-${h.sev}">
+      <div class="hotspot-rank">${i + 1}</div>
+      <div class="hotspot-info">
+        <div class="hotspot-name">${h.name}</div>
+        <div class="hotspot-desc">${h.desc}</div>
+      </div>
+      <div class="hotspot-value ${h.valueCls}">${h.value}</div>
+    </div>
+  `).join('');
+}
+
+/* ── Alarm banner ───────────────────────────────────────────────────────── */
+function updateAlarm(d) {
+  if (d.alarm_flag) {
+    el('alarmText').textContent = d.alarm_text;
+    el('alarmBanner').classList.add('visible');
+  } else {
+    el('alarmBanner').classList.remove('visible');
+  }
+}
+
+/* ── Timestamp ──────────────────────────────────────────────────────────── */
+function fmtTimestamp(iso) {
+  try {
+    const dt = new Date(iso);
+    return dt.toLocaleTimeString(undefined, { hour12: false }) +
+           ' ' + (dt.toTimeString().match(/GMT([+-]\d{4})/) || ['','UTC'])[1];
+  } catch { return iso; }
+}
+
+/* ── Master update — called once per successful API response ────────────── */
+function applyData(d) {
+  el('connError').classList.remove('visible');
+
+  // Compute risk & classify
+  const score = computeRisk(d);
+  const level = classifyRisk(score);
+
+  // Top strip
+  updateStatusText(level);
+  updateRiskBar(score, level);
+  el('tsDisplay').textContent = fmtTimestamp(d.timestamp);
+
+  // Cards
+  updateTiles(d);
+
+  // Alarm banner
+  updateAlarm(d);
+
+  // Charts — maintain rolling history and push new points
+  const systemFreq = d.freq_bus.reduce((a, b) => a + b, 0) / d.freq_bus.length;
+  pushToChart(riskChart, riskHistory, score);
+  pushToChart(freqChart, freqHistory, systemFreq);
+
+  // Hotspots
+  renderHotspots(deriveHotspots(d));
+}
+
+/* ── Poll loop ──────────────────────────────────────────────────────────── */
+let consecutiveErrors = 0;
+
+async function poll() {
+  try {
+    const resp = await fetch(API_URL, { cache: 'no-store' });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    consecutiveErrors = 0;
+    applyData(data);
+  } catch (err) {
+    consecutiveErrors++;
+    if (consecutiveErrors >= 3) {
+      el('connError').classList.add('visible');
+      el('tsDisplay').textContent = 'Connection lost';
+    }
+    console.warn('[GridSense] poll error:', err.message);
+  } finally {
+    setTimeout(poll, POLL_MS);
+  }
+}
+
+/* kick off */
+poll();
+</script>
+</body>
+</html>
