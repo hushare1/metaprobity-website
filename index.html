@@ -89,11 +89,11 @@
                 <div class="feature-card scroll-animate">
                     <div class="feature-icon">🧮</div>
                     <h3>Explainable AI - Bayesian Swing Equation</h3>
-                    <p>GridSense-AI doesn't just give you answers — it shows how its working.</p>
+                    <p>Physics-based Bayesian estimation with transparent state tracking and model-driven predictions.</p>
                     <ul>
-                        <li>Bayesian uncertainty tracked after every 1-second measurement fusion cycle</li>
-                        <li>Swing equation sensitivity map (Jacobian) rebuilt every second per bus</li>
-                        <li>Kalman gain auto-balances PMU readings vs model predictions</li>                        
+                        <li>State covariance tracked using Extended Kalman Filter with 1-second update cycles</li>
+                        <li>Swing equation linearization (Jacobian) computed per bus for sensitivity analysis</li>
+                        <li>Kalman gain auto-balances PMU measurements against physics-based model predictions</li>                        
                     </ul>
                 </div>
 
@@ -171,7 +171,7 @@
         <div class="container">
             <div class="section-header scroll-animate">
                 <h2>Technical Architecture</h2>
-                <p>Advanced engineering for mission-critical power systems</p>
+                <p>Research based engineering for mission-critical power systems</p>
             </div>
             
             <div class="tech-grid">
@@ -222,8 +222,7 @@
                     <h3>System Components</h3>
                     <div class="component-list">
                         <div class="component">
-                            <h4>PMU Simulator</h4>
-                            <p><code>stream_pmu.py</code></p>
+                            <h4>PMU Simulator</h4>                            
                             <ul>
                                 <li>30 Hz phasor measurements</li>
                                 <li>Realistic grid simulations</li>
@@ -233,7 +232,6 @@
                         </div>
                         <div class="component">
                             <h4>EKF Service</h4>
-                            <p><code>ekf_service.py</code></p>
                             <ul>
                                 <li>Extended Kalman Filter</li>
                                 <li>State estimation (freq, H, D)</li>
@@ -243,7 +241,6 @@
                         </div>
                         <div class="component">
                             <h4>Web API</h4>
-                            <p><code>web_api.py</code></p>
                             <ul>
                                 <li>FastAPI framework</li>
                                 <li>CORS-enabled</li>
@@ -253,7 +250,6 @@
                         </div>
                         <div class="component">
                             <h4>Dashboard</h4>
-                            <p><code>dashboard_enhanced.html</code></p>
                             <ul>
                                 <li>Single-page application</li>
                                 <li>Vanilla JavaScript</li>
@@ -318,52 +314,7 @@
     <!-- Business Value Section -->
     <section id="business" class="business-section">
         <div class="container">
-            <div class="section-header scroll-animate">
-                <h2>Business Value & ROI</h2>
-                <p>Transform grid operations with data-driven intelligence</p>
-            </div>
-
-            <div class="value-grid">
-                <div class="value-card highlight">
-                    <div class="value-icon">💰</div>
-                    <h3>Cost Savings</h3>
-                    <div class="value-amount">Up to 40% reduction</div>
-                    <p>in operational costs through:</p>
-                    <ul>
-                        <li>Reduced blackout frequency</li>
-                        <li>Optimized maintenance schedules</li>
-                        <li>Lower equipment failure rates</li>
-                        <li>Improved asset utilization</li>
-                    </ul>
-                </div>
-
-                <div class="value-card highlight">
-                    <div class="value-icon">⚡</div>
-                    <h3>Reliability Improvement</h3>
-                    <div class="value-amount">99.9%+ uptime</div>
-                    <p>Enhanced grid reliability through:</p>
-                    <ul>
-                        <li>Early fault detection</li>
-                        <li>Predictive maintenance</li>
-                        <li>Automatic event classification</li>
-                        <li>Cascading failure prevention</li>
-                    </ul>
-                </div>
-
-                <div class="value-card highlight">
-                    <div class="value-icon">⏱️</div>
-                    <h3>Response Time</h3>
-                    <div class="value-amount">10x faster</div>
-                    <p>Incident response with:</p>
-                    <ul>
-                        <li>Real-time alerts</li>
-                        <li>Automated diagnostics</li>
-                        <li>Root cause analysis</li>
-                        <li>Decision support tools</li>
-                    </ul>
-                </div>
-            </div>
-
+            
             <div class="use-cases">
                 <h3>Industry Use Cases</h3>
                 <div class="cases-grid">
