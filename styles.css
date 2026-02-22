@@ -5,8 +5,8 @@
     --primary-dark: #4f46e5;
     --primary-light: #818cf8;
     --secondary-color: #8b5cf6;
-    --accent-color: #8B4513;
-    --success-color: brown;
+    --accent-color: #ec4899;
+    --success-color: #10b981;
     --warning-color: #f59e0b;
     --danger-color: #ef4444;
     
@@ -23,7 +23,7 @@
     
     --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     --gradient-2: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-    --gradient-3: linear-gradient(135deg, #A0522D 0%, #8B4513 100%);
+    --gradient-3: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -160,15 +160,6 @@ body {
     line-height: 1.8;
 }
 
-.hero-brand {
-    font-size: 4rem;
-    font-weight: 900;
-    justify-content: center;
-    gap: 1.5rem;
-    margin-bottom: 3rem;
-    color:#00ff00
-}
-
 .hero-buttons {
     display: flex;
     gap: 1rem;
@@ -222,7 +213,7 @@ body {
 
 .hero-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 2rem;
     max-width: 800px;
     margin: 0 auto;
@@ -232,20 +223,18 @@ body {
     padding: 1.5rem;
     background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(10px);
-    border-radius: var(--border-radius-lg);    
+    border-radius: var(--border-radius-lg);
 }
 
 .stat-value {
-    font-size: 1.5rem;
+    font-size: 2rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
 }
 
 .stat-label {
-    font-size: 1.5rem;
+    font-size: 0.9rem;
     opacity: 0.9;
-    font-weight: 800;
-    color: yellow
 }
 
 /* Section Headers */
@@ -391,7 +380,6 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
     gap: 2rem;
-    color:black;
 }
 
 .tech-card {
@@ -487,7 +475,7 @@ body {
 }
 
 .performance-table td:last-child {
-    text-align: left;
+    text-align: right;
     color: var(--success-color);
     font-weight: 600;
 }
@@ -515,25 +503,9 @@ body {
     color: white;
     padding: 0.5rem 1rem;
     border-radius: 20px;
-    font-size: 1.2rem;
+    font-size: 0.9rem;
     font-weight: 500;
 }
-
-.features-available-now {
-  text-align: center;
-  margin-top: 2rem;
-  margin-bottom: 2rem;
-}
-
-.features-label {
-  font-size: 2.5rem !important;
-  font-weight: 800;
-  text-align: center;
-  margin-bottom: 0.5rem !important;
-  margin-top: 2rem;
-  color: brown !important;
-}
-
 
 /* Business Section */
 .business-section {
