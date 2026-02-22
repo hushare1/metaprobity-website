@@ -1,0 +1,1740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GridSense-AI — Operator Decision Support</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ============================================================
+       CSS VARIABLES & RESET
+    ============================================================ */
+    :root {
+      --bg-primary:   #0d1117;
+      --bg-card:      #161b22;
+      --bg-card-alt:  #1c2230;
+      --bg-card-hover:#1f2737;
+      --border:       #30363d;
+      --border-light: #21262d;
+
+      --text-primary: #e6edf3;
+      --text-muted:   #8b949e;
+      --text-dim:     #6e7681;
+
+      --accent:       #7c3aed;
+      --accent-light: #9155fd;
+
+      --green:        #22c55e;
+      --green-bg:     rgba(34,197,94,0.12);
+      --amber:        #f59e0b;
+      --amber-bg:     rgba(245,158,11,0.12);
+      --red:          #ef4444;
+      --red-bg:       rgba(239,68,68,0.12);
+      --blue:         #3b82f6;
+      --blue-bg:      rgba(59,130,246,0.12);
+
+      --radius:       8px;
+      --radius-sm:    4px;
+      --shadow:       0 2px 12px rgba(0,0,0,0.4);
+      --shadow-lg:    0 4px 24px rgba(0,0,0,0.6);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 14px;
+      line-height: 1.5;
+      min-width: 1280px;
+    }
+
+    /* ============================================================
+       UTILITY
+    ============================================================ */
+    .section-heading {
+      font-size: 11px;
+      font-variant: small-caps;
+      letter-spacing: 0.12em;
+      color: var(--text-dim);
+      font-weight: 600;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .chip-green  { background: var(--green-bg);  color: var(--green);  border: 1px solid rgba(34,197,94,0.3); }
+    .chip-amber  { background: var(--amber-bg);  color: var(--amber);  border: 1px solid rgba(245,158,11,0.3); }
+    .chip-red    { background: var(--red-bg);    color: var(--red);    border: 1px solid rgba(239,68,68,0.3); }
+    .chip-blue   { background: var(--blue-bg);   color: var(--blue);   border: 1px solid rgba(59,130,246,0.3); }
+    .chip-purple { background: rgba(124,58,237,0.15); color: var(--accent-light); border: 1px solid rgba(124,58,237,0.3); }
+    .chip-dim    { background: rgba(139,148,158,0.1); color: var(--text-muted); border: 1px solid var(--border); }
+
+    @keyframes pulse-border {
+      0%, 100% { border-color: var(--red); box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+      50%       { border-color: #ff6b6b;   box-shadow: 0 0 0 4px rgba(239,68,68,0); }
+    }
+    .chip-critical {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid var(--red);
+      animation: pulse-border 1.4s ease-in-out infinite;
+    }
+
+    /* Tooltip */
+    .tooltip-wrap { position: relative; display: inline-block; cursor: help; }
+    .tooltip-wrap .tip {
+      visibility: hidden;
+      opacity: 0;
+      background: #2d333b;
+      color: var(--text-primary);
+      font-size: 11px;
+      line-height: 1.4;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 6px 10px;
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      max-width: 280px;
+      white-space: normal;
+      z-index: 999;
+      pointer-events: none;
+      transition: opacity 0.15s;
+      box-shadow: var(--shadow-lg);
+    }
+    .tooltip-wrap:hover .tip { visibility: visible; opacity: 1; }
+    .info-icon { color: var(--text-dim); font-style: normal; font-size: 12px; }
+
+    /* Tables */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .data-table th {
+      background: var(--bg-card-alt);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .data-table th:hover { color: var(--text-primary); background: #222b38; }
+    .data-table th .sort-icon { margin-left: 4px; opacity: 0.5; font-size: 10px; }
+    .data-table th.sorted-asc .sort-icon::after  { content: ' ↑'; opacity: 1; color: var(--accent-light); }
+    .data-table th.sorted-desc .sort-icon::after { content: ' ↓'; opacity: 1; color: var(--accent-light); }
+    .data-table th:not(.sorted-asc):not(.sorted-desc) .sort-icon::after { content: ' ↕'; }
+
+    .data-table td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--border-light);
+      vertical-align: middle;
+    }
+    .data-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+    .data-table tbody tr:hover td { background: var(--bg-card-hover); }
+
+    .row-high {
+      border-left: 3px solid var(--red) !important;
+    }
+    .row-high td:first-child { padding-left: 9px; }
+
+    .row-warn {
+      border-left: 3px solid var(--amber) !important;
+    }
+    .row-warn td:first-child { padding-left: 9px; }
+
+    /* ============================================================
+       NAVBAR
+    ============================================================ */
+    #navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13,17,23,0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+    .nav-logo .brand {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .nav-logo .bolt { color: var(--amber); }
+    .nav-logo .subtitle {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      align-self: center;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      list-style: none;
+    }
+    .nav-links a {
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover  { color: var(--text-primary); background: var(--bg-card-alt); }
+    .nav-links a.active { color: var(--text-primary); background: rgba(124,58,237,0.18); }
+
+    .nav-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge-obs {
+      background: var(--amber-bg);
+      color: var(--amber);
+      border: 1px solid rgba(245,158,11,0.35);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      letter-spacing: 0.03em;
+    }
+    .badge-sync {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 3px 10px;
+    }
+    .sync-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ============================================================
+       STATUS BANNER
+    ============================================================ */
+    #status-banner {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 28px;
+      display: grid;
+      grid-template-columns: 260px 1fr 220px;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .sys-state .state-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+    .sys-state .state-value { font-size: 26px; font-weight: 800; color: var(--green); letter-spacing: -0.02em; line-height: 1.1; }
+    .sys-state .state-sub   { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+    .horizon-tiles {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .horizon-tile {
+      background: var(--bg-card-alt);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .horizon-tile .h-label { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+    .horizon-tile .h-desc  { font-size: 11px; color: var(--text-muted); line-height: 1.3; }
+
+    .utilisation-gauge { display: flex; flex-direction: column; gap: 8px; }
+    .util-header { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+    .util-value  { font-size: 28px; font-weight: 700; color: var(--amber); letter-spacing: -0.03em; }
+    .util-bar-track {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .util-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--green), var(--amber));
+      width: 67%;
+      border-radius: 3px;
+      transition: width 0.4s;
+    }
+    .util-sub { font-size: 11px; color: var(--text-dim); }
+
+    /* ============================================================
+       MAIN CONTENT WRAPPER
+    ============================================================ */
+    #main-content {
+      padding: 24px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* ============================================================
+       STABILITY MATRIX
+    ============================================================ */
+    #stability-matrix .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    #stability-matrix .matrix-table th {
+      background: var(--bg-card-alt);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      text-align: center;
+    }
+    #stability-matrix .matrix-table th:first-child { text-align: left; min-width: 160px; }
+    #stability-matrix .matrix-table td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--border-light);
+      text-align: center;
+      vertical-align: middle;
+    }
+    #stability-matrix .matrix-table td:first-child { text-align: left; }
+    #stability-matrix .matrix-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+    #stability-matrix .matrix-table tbody tr:hover td { background: var(--bg-card-hover); }
+
+    .dimension-label { font-weight: 600; color: var(--text-primary); display: block; font-size: 13px; }
+    .dimension-sub   { font-size: 11px; color: var(--text-dim); }
+
+    .matrix-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .matrix-cell .metric-val  { font-size: 11px; color: var(--text-muted); font-family: 'Courier New', monospace; }
+
+    /* ============================================================
+       SECTION 4+5 ROW
+    ============================================================ */
+    #sec45-row {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    /* Tabs */
+    .tab-buttons {
+      display: flex;
+      gap: 2px;
+      background: var(--bg-card-alt);
+      border-radius: var(--radius-sm);
+      padding: 3px;
+      width: fit-content;
+      margin-bottom: 14px;
+    }
+    .tab-btn {
+      padding: 6px 16px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn:hover  { color: var(--text-primary); }
+    .tab-btn.active { background: var(--bg-card); color: var(--text-primary); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ============================================================
+       RECOMMENDED ACTIONS
+    ============================================================ */
+    #actions-panel .action-card {
+      background: var(--bg-card-alt);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    #actions-panel .action-card:last-child { margin-bottom: 0; }
+
+    .action-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .priority-badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 2px 7px;
+      border-radius: 3px;
+    }
+    .p-high   { background: var(--red-bg);   color: var(--red);   border: 1px solid rgba(239,68,68,0.3); }
+    .p-medium { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+    .p-low    { background: var(--green-bg); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+
+    .action-location {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-right: auto;
+    }
+    .action-icon { font-size: 16px; }
+    .action-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .action-text strong { color: var(--text-primary); }
+
+    /* ============================================================
+       OSCILLATION PANEL
+    ============================================================ */
+    #oscillation-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+
+    .mode-status-ok      { color: var(--green); font-weight: 600; }
+    .mode-status-warn    { color: var(--amber); font-weight: 600; }
+    .mode-status-crit    { color: var(--red);   font-weight: 600; }
+
+    /* ============================================================
+       SCENARIO DRAWER
+    ============================================================ */
+    #scenario-section { border-top: 1px solid var(--border); padding-top: 4px; }
+
+    #scenario-toggle-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 9px 18px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s;
+    }
+    #scenario-toggle-btn:hover { color: var(--text-primary); border-color: var(--accent); background: rgba(124,58,237,0.08); }
+    #scenario-toggle-btn .toggle-arrow { transition: transform 0.25s; font-style: normal; }
+    #scenario-toggle-btn.open .toggle-arrow { transform: rotate(90deg); }
+
+    #scenario-drawer {
+      display: none;
+      margin-top: 16px;
+    }
+    #scenario-drawer.open { display: block; }
+
+    .sim-banner {
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.4);
+      border-radius: var(--radius);
+      padding: 10px 16px;
+      color: var(--amber);
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+
+    .scenario-form {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 20px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: 11px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+    .form-group select,
+    .form-group input {
+      background: var(--bg-card-alt);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      padding: 8px 10px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-group select:focus,
+    .form-group input:focus { border-color: var(--accent); }
+    .form-group select option { background: #1c2230; }
+
+    #run-scenario-btn {
+      background: var(--amber);
+      color: #1a0e00;
+      border: none;
+      border-radius: var(--radius);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 9px 20px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      white-space: nowrap;
+    }
+    #run-scenario-btn:hover { opacity: 0.88; }
+
+    #sim-output { display: none; margin-top: 4px; }
+    #sim-output.visible { display: block; }
+
+    .sim-matrix-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .sim-watermark {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--blue);
+      background: var(--blue-bg);
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: var(--radius-sm);
+      padding: 3px 10px;
+    }
+
+    #clear-scenario-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    #clear-scenario-btn:hover { color: var(--red); border-color: var(--red); }
+
+    .sim-summary-card {
+      background: var(--blue-bg);
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin-top: 14px;
+    }
+    .sim-summary-card .sum-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--blue); font-weight: 600; margin-bottom: 6px; }
+    .sim-summary-card .sum-body  { font-size: 13px; color: var(--text-primary); line-height: 1.6; }
+
+    /* Simulated matrix highlight */
+    .sim-delta-worse { color: var(--red); }
+    .sim-delta-same  { color: var(--text-muted); }
+
+    /* footer */
+    #footer {
+      text-align: center;
+      padding: 20px 28px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* ============================================================
+       TIMESTAMP TICKER
+    ============================================================ */
+    #last-updated {
+      font-variant-numeric: tabular-nums;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================================
+     1. NAVBAR
+============================================================ -->
+<nav id="navbar">
+  <a class="nav-logo" href="index.html">
+    <span class="brand"><span class="bolt">⚡</span> GridSense-AI</span>
+    <span class="subtitle">Operator Decision Support</span>
+  </a>
+
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="dashboard.html">Dashboard</a></li>
+    <li><a href="operator.html" class="active">Operator</a></li>
+  </ul>
+
+  <div class="nav-badges">
+    <span class="badge-obs">Observation Only — Act on SCADA</span>
+    <span class="badge-sync">
+      <span class="sync-dot"></span>
+      Last sync: <span id="last-updated">5s ago</span>&nbsp;| Consistent with Live Dashboard ✓
+    </span>
+  </div>
+</nav>
+
+<!-- ============================================================
+     2. SYSTEM STATUS BANNER
+============================================================ -->
+<section id="status-banner">
+
+  <!-- Left: System State -->
+  <div class="sys-state">
+    <div class="state-label">System State</div>
+    <div class="state-value">&#x25CF; NORMAL</div>
+    <div class="state-sub">Primary risk: <strong style="color:var(--amber)">Frequency</strong> &nbsp;|&nbsp; Secondary: <strong style="color:var(--amber)">Voltage</strong></div>
+  </div>
+
+  <!-- Centre: Prediction Horizon Tiles -->
+  <div class="horizon-tiles">
+    <div class="horizon-tile">
+      <span class="h-label">1 sec</span>
+      <span class="chip chip-green">LOW</span>
+      <span class="h-desc">Freq stable · RoCoF &minus;0.12 Hz/s · Nadir safe</span>
+    </div>
+    <div class="horizon-tile">
+      <span class="h-label">30 sec</span>
+      <span class="chip chip-green">LOW</span>
+      <span class="h-desc">Voltage L-Index 0.47 · All buses in range</span>
+    </div>
+    <div class="horizon-tile">
+      <span class="h-label">2 min</span>
+      <span class="chip chip-amber">MEDIUM</span>
+      <span class="h-desc">L-Index trending ↑ 0.52 · Bus 5 watch</span>
+    </div>
+    <div class="horizon-tile">
+      <span class="h-label">5 min</span>
+      <span class="chip chip-amber">MEDIUM</span>
+      <span class="h-desc">SCR margin tightening · IBR pen. 37%</span>
+    </div>
+  </div>
+
+  <!-- Right: Grid Utilisation Gauge -->
+  <div class="utilisation-gauge">
+    <div class="util-header">Grid Utilisation</div>
+    <div class="util-value">67%</div>
+    <div class="util-bar-track"><div class="util-bar-fill"></div></div>
+    <div class="util-sub">Secure transfer capacity used &nbsp;·&nbsp; 230 kV backbone</div>
+  </div>
+</section>
+
+<!-- ============================================================
+     MAIN CONTENT
+============================================================ -->
+<main id="main-content">
+
+  <!-- ============================================================
+       3. STABILITY MATRIX
+  ============================================================ -->
+  <div class="card" style="padding: 20px;">
+    <div class="section-heading">System Stability Risk by Horizon</div>
+    <table class="matrix-table" id="matrix-table">
+      <thead>
+        <tr>
+          <th style="width:160px">Dimension</th>
+          <th>1 sec</th>
+          <th>30 sec</th>
+          <th>2 min</th>
+          <th>5 min</th>
+        </tr>
+      </thead>
+      <tbody id="matrix-body">
+        <!-- Row: Frequency -->
+        <tr>
+          <td>
+            <span class="dimension-label">⚡ Frequency</span>
+            <span class="dimension-sub">RoCoF · Nadir · FM</span>
+          </td>
+          <!-- 1 sec -->
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-green">LOW</span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">RoCoF: &minus;0.12 Hz/s<i class="info-icon"> ℹ</i><span class="tip">Rate of Change of Frequency (ROCOF). Limit: ±0.5 Hz/s per ENTSO-E NC RfG Art. 13.1(c)</span></span>
+              </span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">Nadir: 49.74 Hz<i class="info-icon"> ℹ</i><span class="tip">Predicted frequency nadir after credible contingency. Warn &lt; 49.2 Hz, Critical &lt; 48.8 Hz</span></span>
+              </span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">FM: 0.82 Hz<i class="info-icon"> ℹ</i><span class="tip">Frequency Stability Margin = f_nadir &minus; f_crit. Higher is safer.</span></span>
+              </span>
+            </div>
+          </td>
+          <!-- 30 sec -->
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-green">LOW</span>
+              <span class="metric-val">RoCoF: &minus;0.14 Hz/s</span>
+              <span class="metric-val">Nadir: 49.71 Hz</span>
+              <span class="metric-val">FM: 0.79 Hz</span>
+            </div>
+          </td>
+          <!-- 2 min -->
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-amber">MEDIUM</span>
+              <span class="metric-val">RoCoF: &minus;0.19 Hz/s</span>
+              <span class="metric-val">Nadir: 49.55 Hz</span>
+              <span class="metric-val">FM: 0.63 Hz</span>
+            </div>
+          </td>
+          <!-- 5 min -->
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-amber">MEDIUM</span>
+              <span class="metric-val">RoCoF: &minus;0.23 Hz/s</span>
+              <span class="metric-val">Nadir: 49.41 Hz</span>
+              <span class="metric-val">FM: 0.49 Hz</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Row: Voltage -->
+        <tr>
+          <td>
+            <span class="dimension-label">🔋 Voltage</span>
+            <span class="dimension-sub">L-Index · V_min · Jac κ</span>
+          </td>
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-green">LOW</span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">L-Index: 0.47<i class="info-icon"> ℹ</i><span class="tip">System Voltage Stability L-Index (Kessel &amp; Glavitsch 1986). Range 0–1; 0=stable, 1=collapse. Warn ≥ 0.50, Crit ≥ 0.80</span></span>
+              </span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">V_min: 0.996 p.u.<i class="info-icon"> ℹ</i><span class="tip">Minimum bus voltage across system. Warn &lt; 0.95 p.u., Crit &lt; 0.90 p.u.</span></span>
+              </span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">κ(J): 84.2<i class="info-icon"> ℹ</i><span class="tip">Jacobian condition number. Large κ indicates proximity to voltage collapse (ill-conditioned power flow Jacobian).</span></span>
+              </span>
+            </div>
+          </td>
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-green">LOW</span>
+              <span class="metric-val">L-Index: 0.49</span>
+              <span class="metric-val">V_min: 0.994 p.u.</span>
+              <span class="metric-val">κ(J): 88.1</span>
+            </div>
+          </td>
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-amber">MEDIUM</span>
+              <span class="metric-val">L-Index: 0.52</span>
+              <span class="metric-val">V_min: 0.991 p.u.</span>
+              <span class="metric-val">κ(J): 101.4</span>
+            </div>
+          </td>
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-amber">MEDIUM</span>
+              <span class="metric-val">L-Index: 0.56</span>
+              <span class="metric-val">V_min: 0.988 p.u.</span>
+              <span class="metric-val">κ(J): 114.7</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Row: Transient -->
+        <tr>
+          <td>
+            <span class="dimension-label">🌀 Transient</span>
+            <span class="dimension-sub">CCT · MRAD · TSI</span>
+          </td>
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-green">LOW</span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">CCT: 218 ms<i class="info-icon"> ℹ</i><span class="tip">Critical Clearing Time — maximum fault duration before loss of synchronism. Warn &lt; 150 ms, Crit &lt; 100 ms.</span></span>
+              </span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">MRAD: 22.4°<i class="info-icon"> ℹ</i><span class="tip">Maximum Rotor Angle Deviation across all generator pairs post-contingency.</span></span>
+              </span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">TSI: 0.72<i class="info-icon"> ℹ</i><span class="tip">Transient Stability Index = (δ_max − δ) / δ_max. TSI &gt; 0 = stable; TSI &lt; 0 = unstable. Warn &lt; 0.20.</span></span>
+              </span>
+            </div>
+          </td>
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-green">LOW</span>
+              <span class="metric-val">CCT: 204 ms</span>
+              <span class="metric-val">MRAD: 25.1°</span>
+              <span class="metric-val">TSI: 0.67</span>
+            </div>
+          </td>
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-green">LOW</span>
+              <span class="metric-val">CCT: 183 ms</span>
+              <span class="metric-val">MRAD: 29.8°</span>
+              <span class="metric-val">TSI: 0.58</span>
+            </div>
+          </td>
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-amber">MEDIUM</span>
+              <span class="metric-val">CCT: 161 ms</span>
+              <span class="metric-val">MRAD: 34.7°</span>
+              <span class="metric-val">TSI: 0.43</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Row: Oscillation -->
+        <tr>
+          <td>
+            <span class="dimension-label">〰️ Oscillation</span>
+            <span class="dimension-sub">f_osc · ζ · T_settle</span>
+          </td>
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-amber">MEDIUM</span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">f_osc: 0.25 Hz<i class="info-icon"> ℹ</i><span class="tip">Dominant inter-area oscillation mode frequency. 0.1–0.8 Hz inter-area; 0.8–3.0 Hz local modes.</span></span>
+              </span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">ζ: 4.1%<i class="info-icon"> ℹ</i><span class="tip">Damping ratio. Warn &lt; 5% (ENTSO-E), Crit &lt; 3% (potential growing oscillations).</span></span>
+              </span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">T_settle: 38.2 s<i class="info-icon"> ℹ</i><span class="tip">Time for post-disturbance oscillations to decay to &lt; 5% of peak amplitude.</span></span>
+              </span>
+            </div>
+          </td>
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-amber">MEDIUM</span>
+              <span class="metric-val">f_osc: 0.25 Hz</span>
+              <span class="metric-val">ζ: 3.9%</span>
+              <span class="metric-val">T_settle: 40.1 s</span>
+            </div>
+          </td>
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-amber">MEDIUM</span>
+              <span class="metric-val">f_osc: 0.24 Hz</span>
+              <span class="metric-val">ζ: 3.7%</span>
+              <span class="metric-val">T_settle: 43.6 s</span>
+            </div>
+          </td>
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-amber">MEDIUM</span>
+              <span class="metric-val">f_osc: 0.24 Hz</span>
+              <span class="metric-val">ζ: 3.5%</span>
+              <span class="metric-val">T_settle: 46.8 s</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Row: IBR Integration -->
+        <tr>
+          <td>
+            <span class="dimension-label">☀️ IBR Integration</span>
+            <span class="dimension-sub">SCR · WSCR · PLL · IBR%</span>
+          </td>
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-green">LOW</span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">SCR: 3.4<i class="info-icon"> ℹ</i><span class="tip">Short-Circuit Ratio at IBR point of common coupling. Warn &lt; 3.0, Crit &lt; 2.0.</span></span>
+              </span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">WSCR: 2.9<i class="info-icon"> ℹ</i><span class="tip">Weighted Short-Circuit Ratio accounting for multiple IBRs. More conservative than site SCR.</span></span>
+              </span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">PLL margin: 0.41<i class="info-icon"> ℹ</i><span class="tip">PLL phase-margin. Warn &lt; 0.30. Indicates GFL inverter synchronisation robustness.</span></span>
+              </span>
+              <span class="metric-val">IBR pen.: 35%</span>
+            </div>
+          </td>
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-green">LOW</span>
+              <span class="metric-val">SCR: 3.3</span>
+              <span class="metric-val">WSCR: 2.8</span>
+              <span class="metric-val">PLL margin: 0.39</span>
+              <span class="metric-val">IBR pen.: 35%</span>
+            </div>
+          </td>
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-amber">MEDIUM</span>
+              <span class="metric-val">SCR: 3.1</span>
+              <span class="metric-val">WSCR: 2.6</span>
+              <span class="metric-val">PLL margin: 0.34</span>
+              <span class="metric-val">IBR pen.: 37%</span>
+            </div>
+          </td>
+          <td>
+            <div class="matrix-cell">
+              <span class="chip chip-amber">MEDIUM</span>
+              <span class="metric-val">SCR: 2.9</span>
+              <span class="metric-val">WSCR: 2.4</span>
+              <span class="metric-val">PLL margin: 0.31</span>
+              <span class="metric-val">IBR pen.: 38%</span>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============================================================
+       SECTIONS 4 + 5 SIDE BY SIDE
+  ============================================================ -->
+  <div id="sec45-row">
+
+    <!-- ============================================================
+         4. SPATIAL RANKING PANEL
+    ============================================================ -->
+    <div class="card" style="padding: 20px;">
+      <div class="section-heading">WHERE TO ACT? — Spatial Ranking</div>
+
+      <div class="tab-buttons">
+        <button class="tab-btn active" onclick="switchTab('buses')">Buses</button>
+        <button class="tab-btn" onclick="switchTab('lines')">Lines</button>
+        <button class="tab-btn" onclick="switchTab('generators')">Generators / IBRs</button>
+      </div>
+
+      <!-- BUSES TAB -->
+      <div class="tab-panel active" id="tab-buses">
+        <div style="overflow-x:auto">
+          <table class="data-table" id="tbl-buses">
+            <thead>
+              <tr>
+                <th onclick="sortTable('tbl-buses',0)">Bus ID<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-buses',1)">Voltage (p.u.)<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-buses',2)">L-Index<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-buses',3)">Freq Support Need<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-buses',4)">Osc. Participation<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-buses',5)">Worst Horizon<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-buses',6)">Risk Level<span class="sort-icon"></span></th>
+                <th>Recommended Action</th>
+              </tr>
+            </thead>
+            <tbody id="body-buses"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- LINES TAB -->
+      <div class="tab-panel" id="tab-lines">
+        <div style="overflow-x:auto">
+          <table class="data-table" id="tbl-lines">
+            <thead>
+              <tr>
+                <th onclick="sortTable('tbl-lines',0)">Line (From→To)<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-lines',1)">Loading (%)<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-lines',2)">Thermal Margin (MVA)<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-lines',3)">VSI<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-lines',4)">FVSI<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-lines',5)">Risk at 5 min<span class="sort-icon"></span></th>
+                <th>Recommended Action</th>
+              </tr>
+            </thead>
+            <tbody id="body-lines"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- GENERATORS TAB -->
+      <div class="tab-panel" id="tab-generators">
+        <div style="overflow-x:auto">
+          <table class="data-table" id="tbl-generators">
+            <thead>
+              <tr>
+                <th onclick="sortTable('tbl-generators',0)">Unit ID<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-generators',1)">Type<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-generators',2)">Inertia H (s)<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-generators',3)">Damping Coeff<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-generators',4)">Osc. Role<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-generators',5)">SCR<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-generators',6)">PLL Margin<span class="sort-icon"></span></th>
+                <th onclick="sortTable('tbl-generators',7)">Risk Level<span class="sort-icon"></span></th>
+                <th>Recommended Action</th>
+              </tr>
+            </thead>
+            <tbody id="body-generators"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         5. TOP 3 RECOMMENDED ACTIONS
+    ============================================================ -->
+    <div id="actions-panel" class="card" style="padding: 20px; align-self: start;">
+      <div class="section-heading">Recommended Actions (Next 5 min)</div>
+
+      <div class="action-card">
+        <div class="action-top">
+          <span class="priority-badge p-high">HIGH</span>
+          <span class="action-location">Bus 5 · Voltage</span>
+          <span class="action-icon">🔋</span>
+        </div>
+        <div class="action-text">
+          <strong>Increase reactive support near Bus 5.</strong> Voltage L-Index approaching 0.56 (warn threshold 0.50, trending toward 0.64 in 5 min). <em>Consider enabling capacitor bank or requesting reactive injection from IBR-1 in SCADA before L-Index breaches 0.65.</em>
+        </div>
+      </div>
+
+      <div class="action-card">
+        <div class="action-top">
+          <span class="priority-badge p-medium">MEDIUM</span>
+          <span class="action-location">G2 · Oscillation</span>
+          <span class="action-icon">〰️</span>
+        </div>
+        <div class="action-text">
+          <strong>Monitor inter-area mode damping on G2.</strong> G2–G3 inter-area mode at 0.25 Hz shows damping ratio 4.1% — trending toward warn limit of 5.0%. <em>Verify PSS settings on G2 are active and scheduler redispatch is not reducing governor headroom.</em>
+        </div>
+      </div>
+
+      <div class="action-card">
+        <div class="action-top">
+          <span class="priority-badge p-medium">MEDIUM</span>
+          <span class="action-location">IBR-2 · SCR / PLL</span>
+          <span class="action-icon">☀️</span>
+        </div>
+        <div class="action-text">
+          <strong>SCR at Bus 9 (IBR-2 PCC) expected to tighten to 2.9 in 5 min.</strong> Forecasted additional IBR output in area. <em>Verify IBR-2 PLL synchronisation margin stays above 0.30 in SCADA. Consider limiting IBR-2 active power ramp rate if SCR approaches 2.5.</em>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       6. OSCILLATION MONITORING
+  ============================================================ -->
+  <div class="card" style="padding: 20px;">
+    <div class="section-heading">Oscillation Monitoring</div>
+    <div id="oscillation-panel">
+
+      <!-- Left: Active Modes -->
+      <div>
+        <div style="font-size:12px;color:var(--text-dim);font-weight:600;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;">Active Oscillation Modes</div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Mode #</th>
+                <th>Freq (Hz)</th>
+                <th>Damping (%)</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>T_settle (s)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="row-warn">
+                <td><strong>Mode 1</strong></td>
+                <td>0.25</td>
+                <td><span style="color:var(--amber);font-weight:600">4.1%</span></td>
+                <td><span class="chip chip-purple">Inter-area</span></td>
+                <td><span class="mode-status-warn">⚠ WATCH</span></td>
+                <td>38.2</td>
+              </tr>
+              <tr>
+                <td><strong>Mode 2</strong></td>
+                <td>1.12</td>
+                <td><span style="color:var(--green);font-weight:600">8.6%</span></td>
+                <td><span class="chip chip-dim">Local</span></td>
+                <td><span class="mode-status-ok">✓ STABLE</span></td>
+                <td>14.7</td>
+              </tr>
+              <tr>
+                <td><strong>Mode 3</strong></td>
+                <td>1.83</td>
+                <td><span style="color:var(--green);font-weight:600">11.4%</span></td>
+                <td><span class="chip chip-dim">Local</span></td>
+                <td><span class="mode-status-ok">✓ STABLE</span></td>
+                <td>8.9</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Right: Critical Elements -->
+      <div>
+        <div style="font-size:12px;color:var(--text-dim);font-weight:600;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.06em;">Top 5 Oscillation-Critical Elements</div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Element</th>
+                <th>Type</th>
+                <th>Participation</th>
+                <th>Role</th>
+                <th>Risk Horizon</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="row-warn">
+                <td><strong>G2</strong></td>
+                <td>SG — Bus 2</td>
+                <td>0.82</td>
+                <td><span style="color:var(--red);font-weight:600">Source</span></td>
+                <td>Current</td>
+              </tr>
+              <tr class="row-warn">
+                <td><strong>G3</strong></td>
+                <td>SG — Bus 3</td>
+                <td>0.74</td>
+                <td><span style="color:var(--red);font-weight:600">Source</span></td>
+                <td>Current</td>
+              </tr>
+              <tr>
+                <td><strong>Bus 7</strong></td>
+                <td>Load Bus</td>
+                <td>0.51</td>
+                <td><span style="color:var(--amber);font-weight:600">Sink</span></td>
+                <td>30 sec</td>
+              </tr>
+              <tr>
+                <td><strong>IBR-2</strong></td>
+                <td>GFL — Bus 9</td>
+                <td>0.38</td>
+                <td><span style="color:var(--text-muted)">Neutral</span></td>
+                <td>2 min</td>
+              </tr>
+              <tr>
+                <td><strong>Line 5–7</strong></td>
+                <td>Transmission</td>
+                <td>0.29</td>
+                <td><span style="color:var(--text-muted)">Neutral</span></td>
+                <td>5 min</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       7. SCENARIO / WHAT-IF MODE
+  ============================================================ -->
+  <div id="scenario-section">
+    <button id="scenario-toggle-btn" onclick="toggleScenario()">
+      <i class="toggle-arrow">▶</i>
+      Scenario / What-If Mode (Simulation)
+    </button>
+
+    <div id="scenario-drawer">
+      <div class="sim-banner">
+        ⚠️ SIMULATION MODE — Values shown are hypothetical projections based on rule-based deltas. Do not act on any information here until confirmed in SCADA.
+      </div>
+
+      <div class="card" style="padding: 20px;">
+        <div class="section-heading">Disturbance Configuration</div>
+        <div class="scenario-form">
+          <div class="form-group">
+            <label>Disturbance Type</label>
+            <select id="sc-type">
+              <option value="gen_trip">Generator Trip</option>
+              <option value="line_outage">Line Outage</option>
+              <option value="load_change">Load Change</option>
+              <option value="ibr_curtail">IBR Curtailment</option>
+              <option value="bess_inject">BESS Injection</option>
+              <option value="demand_resp">Demand Response</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Location</label>
+            <select id="sc-location">
+              <optgroup label="Buses">
+                <option>Bus 1</option><option>Bus 2</option><option>Bus 3</option>
+                <option>Bus 4</option><option>Bus 5</option><option>Bus 6</option>
+                <option>Bus 7</option><option>Bus 8</option><option>Bus 9</option>
+              </optgroup>
+              <optgroup label="Generators">
+                <option>G1</option><option>G2</option><option>G3</option>
+                <option>IBR-1</option><option>IBR-2</option>
+              </optgroup>
+              <optgroup label="Lines">
+                <option>Line 1–4</option><option>Line 4–5</option><option>Line 5–6</option>
+                <option>Line 3–6</option><option>Line 6–7</option><option>Line 7–8</option>
+                <option>Line 8–2</option><option>Line 8–9</option><option>Line 9–4</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Magnitude (MW or %)</label>
+            <input type="number" id="sc-magnitude" value="50" min="0" max="300" step="10" />
+          </div>
+          <div class="form-group">
+            <label>Timing</label>
+            <select id="sc-timing">
+              <option>Now</option>
+              <option>+10s</option>
+              <option>+30s</option>
+              <option>+1min</option>
+              <option>+2min</option>
+            </select>
+          </div>
+          <div></div>
+          <div>
+            <button id="run-scenario-btn" onclick="runScenario()">Run Scenario</button>
+          </div>
+        </div>
+
+        <!-- Simulated Output -->
+        <div id="sim-output">
+          <div class="sim-matrix-header">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="section-heading" style="margin:0">Projected Stability Matrix</span>
+              <span class="sim-watermark">&#x25CF; SIMULATED</span>
+            </div>
+            <button id="clear-scenario-btn" onclick="clearScenario()">✕ Clear Scenario</button>
+          </div>
+
+          <table class="matrix-table" id="sim-matrix-table" style="font-size:12px">
+            <thead>
+              <tr>
+                <th style="width:160px">Dimension</th>
+                <th>1 sec</th>
+                <th>30 sec</th>
+                <th>2 min</th>
+                <th>5 min</th>
+              </tr>
+            </thead>
+            <tbody id="sim-matrix-body"></tbody>
+          </table>
+
+          <div class="sim-summary-card">
+            <div class="sum-title">Predicted Effect</div>
+            <div class="sum-body" id="sim-summary-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer id="footer">
+  GridSense-AI Operator Decision Support &nbsp;·&nbsp; IEEE 9-Bus Reference System &nbsp;·&nbsp; 50 Hz Base &nbsp;·&nbsp; Read-only — All actions must be confirmed via SCADA
+  &nbsp;·&nbsp; <span id="footer-ts"></span>
+</footer>
+
+<!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+<script>
+"use strict";
+
+/* ============================================================
+   CONFIG — Configurable per utility / grid code
+============================================================ */
+const CONFIG = {
+  // Frequency
+  RoCoF_LIMIT   : 0.5,    // Hz/s  — ENTSO-E NC RfG threshold
+  NADIR_WARN    : 49.2,   // Hz    — warn below
+  NADIR_CRIT    : 48.8,   // Hz    — critical below
+
+  // Voltage
+  L_INDEX_WARN  : 0.50,   // p.u.
+  L_INDEX_CRIT  : 0.80,   // p.u.
+  V_MIN_WARN    : 0.95,   // p.u.
+  V_MIN_CRIT    : 0.90,   // p.u.
+
+  // Transient
+  CCT_WARN      : 150,    // ms
+  CCT_CRIT      : 100,    // ms
+  TSI_WARN      : 0.20,   // p.u.
+
+  // Oscillation
+  DAMPING_WARN  : 0.05,   // 5 %
+  DAMPING_CRIT  : 0.03,   // 3 %
+
+  // IBR / SCR
+  SCR_WARN      : 3.0,
+  SCR_CRIT      : 2.0,
+  PLL_MARGIN_WARN: 0.30,
+
+  // Grid utilisation
+  UTIL_WARN     : 75,     // %
+  UTIL_CRIT     : 90,     // %
+};
+
+/* ============================================================
+   LIVE DATA — IEEE 9-Bus static dummy values
+============================================================ */
+const BUS_DATA = [
+  // [id, voltage, lIndex, freqSupportNeed, oscParticipation, worstHorizon, risk, action]
+  { id:'Bus 1', v:1.040, li:0.14, fsn:'Low',    osc:0.11, wh:'1 sec',  risk:'LOW',    action:'No immediate action required. Slack bus — monitor for unexpected power swings.' },
+  { id:'Bus 2', v:1.025, li:0.28, fsn:'Low',    osc:0.82, wh:'Current',risk:'MEDIUM', action:'Verify PSS on G2 (Bus 2) active — dominant inter-area oscillation source.' },
+  { id:'Bus 3', v:1.025, li:0.31, fsn:'Medium', osc:0.74, wh:'Current',risk:'MEDIUM', action:'Monitor G3 (Bus 3) rotor angle and PSS output — co-source of 0.25 Hz mode.' },
+  { id:'Bus 4', v:1.026, li:0.38, fsn:'Low',    osc:0.22, wh:'2 min',  risk:'LOW',    action:'No immediate action. Monitor voltage trend — sub-transmission junction bus.' },
+  { id:'Bus 5', v:0.996, li:0.47, fsn:'High',   osc:0.19, wh:'5 min',  risk:'HIGH',   action:'Enable capacitor bank at Bus 5 in SCADA — L-index trending toward warn threshold.' },
+  { id:'Bus 6', v:1.013, li:0.39, fsn:'Medium', osc:0.15, wh:'2 min',  risk:'LOW',    action:'No immediate action. Verify load-side reactive demand has not increased.' },
+  { id:'Bus 7', v:1.026, li:0.51, fsn:'Medium', osc:0.51, wh:'30 sec', risk:'MEDIUM', action:'Bus 7 is oscillation sink — check load modulation. Verify dynamic load model.' },
+  { id:'Bus 8', v:1.016, li:0.44, fsn:'Low',    osc:0.33, wh:'5 min',  risk:'LOW',    action:'No immediate action. Loading on line 8–9 is elevated — monitor thermal margin.' },
+  { id:'Bus 9', v:1.032, li:0.42, fsn:'Medium', osc:0.38, wh:'5 min',  risk:'MEDIUM', action:'IBR-2 PCC — ensure PLL margin does not drop below 0.30 as SCR tightens.' },
+];
+
+const LINE_DATA = [
+  // [from, to, loading%, thermalMargin MVA, VSI, FVSI, risk5min, action]
+  { line:'1 → 4', load:45, tm:94,  vsi:0.81, fvsi:0.18, r5:'LOW',    action:'No action required. Healthy thermal and voltage stability margins.' },
+  { line:'4 → 5', load:62, tm:65,  vsi:0.74, fvsi:0.27, r5:'MEDIUM', action:'Line 4–5 loading trending up. Verify tie-line relays are armed in SCADA.' },
+  { line:'5 → 6', load:38, tm:105, vsi:0.86, fvsi:0.12, r5:'LOW',    action:'No action required.' },
+  { line:'3 → 6', load:71, tm:42,  vsi:0.68, fvsi:0.34, r5:'HIGH',   action:'Highest-loaded line — 29 MVA from thermal limit. Coordinate with generation dispatch to relieve.' },
+  { line:'6 → 7', load:55, tm:73,  vsi:0.77, fvsi:0.23, r5:'MEDIUM', action:'Monitor FVSI — approaching 0.30 slow-stability warn. Track with Bus 7 L-index.' },
+  { line:'7 → 8', load:48, tm:88,  vsi:0.83, fvsi:0.16, r5:'LOW',    action:'No action required.' },
+  { line:'8 → 2', load:33, tm:114, vsi:0.91, fvsi:0.08, r5:'LOW',    action:'Lowest-loaded line. No action required.' },
+  { line:'8 → 9', load:67, tm:54,  vsi:0.71, fvsi:0.31, r5:'MEDIUM', action:'IBR-2 export corridor — monitor if IBR-2 ramps up. Verify protection coordination.' },
+  { line:'9 → 4', load:41, tm:98,  vsi:0.84, fvsi:0.15, r5:'LOW',    action:'No action required.' },
+];
+
+const GEN_DATA = [
+  { id:'G1',    type:'SG',            typeFull:'Synchronous Generator', h:9.55, damp:18.2, oscRole:'Inertia anchor',    scr:'N/A', pll:'N/A', risk:'LOW',    action:'Maintain AVR in automatic. Primary frequency response asset.' },
+  { id:'G2',    type:'SG',            typeFull:'Synchronous Generator', h:3.33, damp:9.4,  oscRole:'Osc. source (0.25 Hz)', scr:'N/A', pll:'N/A', risk:'MEDIUM', action:'Verify PSS is active and tuned. G2 is dominant source of inter-area mode.' },
+  { id:'G3',    type:'SG',            typeFull:'Synchronous Generator', h:2.35, damp:7.8,  oscRole:'Osc. source (0.25 Hz)', scr:'N/A', pll:'N/A', risk:'MEDIUM', action:'Check governor droop setting. Co-source of oscillation with G2.' },
+  { id:'IBR-1', type:'Grid-Forming',  typeFull:'Grid-Forming IBR (VSM)', h:4.00, damp:12.1, oscRole:'Damping support',  scr:3.4,   pll:'N/A', risk:'LOW',    action:'Grid-forming IBR — confirm virtual inertia emulation is enabled.' },
+  { id:'IBR-2', type:'Grid-Following', typeFull:'Grid-Following IBR (PLL)', h:'0 (GFL)', damp:'N/A', oscRole:'Neutral', scr:3.1, pll:0.41, risk:'MEDIUM', action:'PLL stability margin 0.41 → trending to 0.31 in 5 min. Monitor. Consider current limiter active.' },
+];
+
+/* ============================================================
+   CHIP HELPERS
+============================================================ */
+function riskChip(level) {
+  const map = { LOW: 'chip-green', MEDIUM: 'chip-amber', HIGH: 'chip-red', CRITICAL: 'chip-critical' };
+  return `<span class="chip ${map[level] || 'chip-dim'}">${level}</span>`;
+}
+
+/* ============================================================
+   POPULATE SPATIAL TABLES
+============================================================ */
+function buildBusTable() {
+  const tbody = document.getElementById('body-buses');
+  tbody.innerHTML = '';
+  BUS_DATA.forEach(b => {
+    const ri = b.risk;
+    const rowClass = ri === 'HIGH' ? 'row-high' : (ri === 'MEDIUM' ? 'row-warn' : '');
+    const liColor = b.li >= CONFIG.L_INDEX_CRIT ? 'var(--red)' : b.li >= CONFIG.L_INDEX_WARN ? 'var(--amber)' : 'var(--green)';
+    const vColor  = b.v  <= CONFIG.V_MIN_CRIT   ? 'var(--red)' : b.v  <= CONFIG.V_MIN_WARN   ? 'var(--amber)' : 'var(--green)';
+    tbody.innerHTML += `
+      <tr class="${rowClass}">
+        <td><strong>${b.id}</strong></td>
+        <td style="color:${vColor};font-family:monospace">${b.v.toFixed(3)}</td>
+        <td style="color:${liColor};font-family:monospace">${b.li.toFixed(2)}</td>
+        <td>${b.fsn}</td>
+        <td style="font-family:monospace">${b.osc.toFixed(2)}</td>
+        <td>${b.wh}</td>
+        <td>${riskChip(ri)}</td>
+        <td style="color:var(--text-muted);font-size:12px;max-width:220px">${b.action}</td>
+      </tr>`;
+  });
+}
+
+function buildLineTable() {
+  const tbody = document.getElementById('body-lines');
+  tbody.innerHTML = '';
+  LINE_DATA.forEach(l => {
+    const loadColor = l.load >= 80 ? 'var(--red)' : l.load >= 65 ? 'var(--amber)' : 'var(--green)';
+    const rowClass = l.r5 === 'HIGH' ? 'row-high' : (l.r5 === 'MEDIUM' ? 'row-warn' : '');
+    const fvsiColor = l.fvsi >= 0.30 ? 'var(--amber)' : 'var(--text-muted)';
+    tbody.innerHTML += `
+      <tr class="${rowClass}">
+        <td><strong>${l.line}</strong></td>
+        <td style="color:${loadColor};font-family:monospace">${l.load}%</td>
+        <td style="font-family:monospace">${l.tm}</td>
+        <td style="font-family:monospace">${l.vsi.toFixed(2)}</td>
+        <td style="color:${fvsiColor};font-family:monospace">${l.fvsi.toFixed(2)}</td>
+        <td>${riskChip(l.r5)}</td>
+        <td style="color:var(--text-muted);font-size:12px;max-width:220px">${l.action}</td>
+      </tr>`;
+  });
+}
+
+function buildGenTable() {
+  const tbody = document.getElementById('body-generators');
+  tbody.innerHTML = '';
+  GEN_DATA.forEach(g => {
+    const rowClass = g.risk === 'HIGH' ? 'row-high' : (g.risk === 'MEDIUM' ? 'row-warn' : '');
+    const pllDisplay = g.pll === 'N/A' ? '<span style="color:var(--text-dim)">N/A (SG)</span>'
+      : `<span style="color:${g.pll < CONFIG.PLL_MARGIN_WARN ? 'var(--amber)' : 'var(--text-muted)'};font-family:monospace">${g.pll}</span>`;
+    const scrDisplay = g.scr === 'N/A' ? '<span style="color:var(--text-dim)">N/A (SG)</span>'
+      : `<span style="font-family:monospace">${g.scr}</span>`;
+    tbody.innerHTML += `
+      <tr class="${rowClass}">
+        <td><strong>${g.id}</strong></td>
+        <td><span class="chip chip-dim" style="font-size:10px">${g.type}</span></td>
+        <td style="font-family:monospace">${g.h}</td>
+        <td style="font-family:monospace">${g.damp}</td>
+        <td style="font-size:12px;color:var(--text-muted)">${g.oscRole}</td>
+        <td>${scrDisplay}</td>
+        <td>${pllDisplay}</td>
+        <td>${riskChip(g.risk)}</td>
+        <td style="color:var(--text-muted);font-size:12px;max-width:200px">${g.action}</td>
+      </tr>`;
+  });
+}
+
+/* ============================================================
+   TAB SWITCHING
+============================================================ */
+function switchTab(tabName) {
+  ['buses','lines','generators'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === tabName);
+  });
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    const names = ['buses','lines','generators'];
+    btn.classList.toggle('active', names[i] === tabName);
+  });
+}
+
+/* ============================================================
+   TABLE SORTING
+============================================================ */
+const sortState = {};
+function sortTable(tableId, colIdx) {
+  const tbl = document.getElementById(tableId);
+  const key = tableId + '_' + colIdx;
+  const asc = !sortState[key];
+  sortState[key] = asc;
+
+  // Update header classes
+  tbl.querySelectorAll('th').forEach((th, i) => {
+    th.classList.remove('sorted-asc', 'sorted-desc');
+    if (i === colIdx) th.classList.add(asc ? 'sorted-asc' : 'sorted-desc');
+  });
+
+  const tbody = tbl.querySelector('tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  rows.sort((a, b) => {
+    const aVal = a.cells[colIdx] ? a.cells[colIdx].innerText.trim() : '';
+    const bVal = b.cells[colIdx] ? b.cells[colIdx].innerText.trim() : '';
+    const aNum = parseFloat(aVal);
+    const bNum = parseFloat(bVal);
+    if (!isNaN(aNum) && !isNaN(bNum)) return asc ? aNum - bNum : bNum - aNum;
+    return asc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+  });
+  rows.forEach(r => tbody.appendChild(r));
+}
+
+/* ============================================================
+   SCENARIO DRAWER TOGGLE
+============================================================ */
+function toggleScenario() {
+  const btn    = document.getElementById('scenario-toggle-btn');
+  const drawer = document.getElementById('scenario-drawer');
+  const open   = drawer.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+
+/* ============================================================
+   SCENARIO SIMULATION — RULE-BASED DELTAS
+   Delta rules (per 50 MW equivalent disturbance):
+     gen_trip:     RoCoF +0.08, nadir -0.15, L +0.05, CCT -12, ζ -0.3%
+     line_outage:  L +0.08, CCT -18, SCR -0.15, FVSI_worst +0.05
+     load_change:  L +0.04, V_min -0.003, ζ -0.2%
+     ibr_curtail:  SCR -0.2, PLL -0.03, RoCoF +0.04, nadir -0.08
+     bess_inject:  RoCoF -0.05, nadir +0.10, L -0.03 (beneficial)
+     demand_resp:  L -0.04, V_min +0.003 (beneficial)
+============================================================ */
+const BASE = {
+  freq:  { rocof:[0.12,0.14,0.19,0.23], nadir:[49.74,49.71,49.55,49.41], fm:[0.82,0.79,0.63,0.49] },
+  volt:  { li:[0.47,0.49,0.52,0.56],    vmin:[0.996,0.994,0.991,0.988],  kj:[84,88,101,114] },
+  trans: { cct:[218,204,183,161],        mrad:[22.4,25.1,29.8,34.7],      tsi:[0.72,0.67,0.58,0.43] },
+  osc:   { fosc:[0.25,0.25,0.24,0.24],  zeta:[4.1,3.9,3.7,3.5],          ts:[38.2,40.1,43.6,46.8] },
+  ibr:   { scr:[3.4,3.3,3.1,2.9],       wscr:[2.9,2.8,2.6,2.4],          pll:[0.41,0.39,0.34,0.31] },
+};
+
+const DELTA_RULES = {
+  gen_trip:    { rocof:+0.08, nadir:-0.15, li:+0.05, cct:-12,  zeta:-0.3, scr:-0.05, pll:-0.02 },
+  line_outage: { rocof:+0.03, nadir:-0.06, li:+0.08, cct:-18,  zeta:-0.2, scr:-0.15, pll:-0.03 },
+  load_change: { rocof:+0.02, nadir:-0.04, li:+0.04, cct:-6,   zeta:-0.2, scr:+0.00, pll:+0.00 },
+  ibr_curtail: { rocof:+0.04, nadir:-0.08, li:+0.02, cct:-5,   zeta:-0.1, scr:-0.20, pll:-0.03 },
+  bess_inject: { rocof:-0.05, nadir:+0.10, li:-0.03, cct:+10,  zeta:+0.4, scr:+0.10, pll:+0.02 },
+  demand_resp: { rocof:-0.02, nadir:+0.05, li:-0.04, cct:+8,   zeta:+0.3, scr:+0.05, pll:+0.01 },
+};
+
+function getLevel(row, h) {
+  if (row === 'freq') {
+    const rocof = BASE.freq.rocof[h];
+    const nadir = BASE.freq.nadir[h];
+    if (rocof > CONFIG.RoCoF_LIMIT || nadir < CONFIG.NADIR_CRIT) return 'CRITICAL';
+    if (nadir < CONFIG.NADIR_WARN) return 'HIGH';
+    if (rocof > CONFIG.RoCoF_LIMIT * 0.5) return 'MEDIUM';
+    return 'LOW';
+  }
+  if (row === 'volt') {
+    const li = BASE.volt.li[h];
+    if (li >= CONFIG.L_INDEX_CRIT) return 'CRITICAL';
+    if (li >= CONFIG.L_INDEX_WARN) return 'HIGH';
+    if (li > 0.40) return 'MEDIUM';
+    return 'LOW';
+  }
+  if (row === 'trans') {
+    const cct = BASE.trans.cct[h];
+    if (cct < CONFIG.CCT_CRIT) return 'CRITICAL';
+    if (cct < CONFIG.CCT_WARN) return 'HIGH';
+    if (cct < 180) return 'MEDIUM';
+    return 'LOW';
+  }
+  if (row === 'osc') {
+    const z = BASE.osc.zeta[h] / 100;
+    if (z < CONFIG.DAMPING_CRIT) return 'CRITICAL';
+    if (z < CONFIG.DAMPING_WARN) return 'HIGH';
+    if (z < 0.06) return 'MEDIUM';
+    return 'LOW';
+  }
+  if (row === 'ibr') {
+    const scr = BASE.ibr.scr[h];
+    if (scr < CONFIG.SCR_CRIT) return 'CRITICAL';
+    if (scr < CONFIG.SCR_WARN) return 'HIGH';
+    if (scr < 3.5) return 'MEDIUM';
+    return 'LOW';
+  }
+  return 'LOW';
+}
+
+function simVal(base, delta, scale, digits) {
+  const v = base + delta * scale;
+  return typeof digits === 'number' ? v.toFixed(digits) : v;
+}
+
+function runScenario() {
+  const type  = document.getElementById('sc-type').value;
+  const loc   = document.getElementById('sc-location').value;
+  const mag   = parseFloat(document.getElementById('sc-magnitude').value) || 50;
+  const scale = mag / 50;  // normalised to 50 MW baseline
+
+  const d = DELTA_RULES[type] || {};
+
+  const horizons = ['1 sec','30 sec','2 min','5 min'];
+  const hNames = ['1 sec','30 sec','2 min','5 min'];
+  // Scale deltas: later horizons compound
+  const hScale  = [0.6, 1.0, 1.6, 2.4];
+
+  const tbody = document.getElementById('sim-matrix-body');
+  tbody.innerHTML = '';
+
+  const rows = [
+    {
+      label: '⚡ Frequency', sub: 'RoCoF · Nadir · FM',
+      cells: horizons.map((_, h) => {
+        const hs = hScale[h] * scale;
+        const rocof = (BASE.freq.rocof[h] + (d.rocof||0)*hs).toFixed(2);
+        const nadir = (BASE.freq.nadir[h] + (d.nadir||0)*hs).toFixed(2);
+        const fm    = (BASE.freq.fm[h]    + (d.nadir||0)*hs).toFixed(2);
+
+        let lvl = 'LOW';
+        if (parseFloat(nadir) < CONFIG.NADIR_CRIT) lvl = 'CRITICAL';
+        else if (parseFloat(nadir) < CONFIG.NADIR_WARN) lvl = 'HIGH';
+        else if (parseFloat(rocof) > CONFIG.RoCoF_LIMIT * 0.5) lvl = 'MEDIUM';
+
+        const worse = parseFloat(rocof) > BASE.freq.rocof[h] || parseFloat(nadir) < BASE.freq.nadir[h];
+        const cls = worse ? 'sim-delta-worse' : 'sim-delta-same';
+        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px">RoCoF: &minus;${rocof} Hz/s</span><br><span class="${cls}" style="font-size:11px">Nadir: ${nadir} Hz</span>`;
+      })
+    },
+    {
+      label: '🔋 Voltage', sub: 'L-Index · V_min · Jac κ',
+      cells: horizons.map((_, h) => {
+        const hs = hScale[h] * scale;
+        const li   = (BASE.volt.li[h]   + (d.li||0)*hs).toFixed(2);
+        const vmin = (BASE.volt.vmin[h] - Math.abs(d.li||0)*hs*0.01).toFixed(3);
+
+        let lvl = 'LOW';
+        if (parseFloat(li) >= CONFIG.L_INDEX_CRIT) lvl = 'CRITICAL';
+        else if (parseFloat(li) >= CONFIG.L_INDEX_WARN) lvl = 'HIGH';
+        else if (parseFloat(li) > 0.40) lvl = 'MEDIUM';
+
+        const worse = parseFloat(li) > BASE.volt.li[h];
+        const cls = worse ? 'sim-delta-worse' : 'sim-delta-same';
+        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px">L-Index: ${li}</span><br><span class="${cls}" style="font-size:11px">V_min: ${vmin} p.u.</span>`;
+      })
+    },
+    {
+      label: '🌀 Transient', sub: 'CCT · MRAD · TSI',
+      cells: horizons.map((_, h) => {
+        const hs = hScale[h] * scale;
+        const cct = Math.round(BASE.trans.cct[h] + (d.cct||0)*hs);
+        const tsi = (BASE.trans.tsi[h] + (d.cct||0)*hs*0.002).toFixed(2);
+
+        let lvl = 'LOW';
+        if (cct < CONFIG.CCT_CRIT) lvl = 'CRITICAL';
+        else if (cct < CONFIG.CCT_WARN) lvl = 'HIGH';
+        else if (cct < 180) lvl = 'MEDIUM';
+
+        const worse = cct < BASE.trans.cct[h];
+        const cls = worse ? 'sim-delta-worse' : 'sim-delta-same';
+        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px">CCT: ${cct} ms</span><br><span class="${cls}" style="font-size:11px">TSI: ${tsi}</span>`;
+      })
+    },
+    {
+      label: '〰️ Oscillation', sub: 'f_osc · ζ · T_settle',
+      cells: horizons.map((_, h) => {
+        const hs = hScale[h] * scale;
+        const zeta = (BASE.osc.zeta[h] + (d.zeta||0)*hs).toFixed(1);
+        const ts   = (BASE.osc.ts[h]   - (d.zeta||0)*hs*2).toFixed(1);
+
+        let lvl = 'LOW';
+        if (parseFloat(zeta)/100 < CONFIG.DAMPING_CRIT) lvl = 'CRITICAL';
+        else if (parseFloat(zeta)/100 < CONFIG.DAMPING_WARN) lvl = 'HIGH';
+        else if (parseFloat(zeta) < 6) lvl = 'MEDIUM';
+
+        const worse = parseFloat(zeta) < BASE.osc.zeta[h];
+        const cls = worse ? 'sim-delta-worse' : 'sim-delta-same';
+        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px">ζ: ${zeta}%</span><br><span class="${cls}" style="font-size:11px">T_settle: ${ts} s</span>`;
+      })
+    },
+    {
+      label: '☀️ IBR Integration', sub: 'SCR · WSCR · PLL',
+      cells: horizons.map((_, h) => {
+        const hs = hScale[h] * scale;
+        const scr = (BASE.ibr.scr[h] + (d.scr||0)*hs).toFixed(2);
+        const pll = (BASE.ibr.pll[h] + (d.pll||0)*hs).toFixed(2);
+
+        let lvl = 'LOW';
+        if (parseFloat(scr) < CONFIG.SCR_CRIT) lvl = 'CRITICAL';
+        else if (parseFloat(scr) < CONFIG.SCR_WARN) lvl = 'HIGH';
+        else if (parseFloat(scr) < 3.5) lvl = 'MEDIUM';
+
+        const worse = parseFloat(scr) < BASE.ibr.scr[h];
+        const cls = worse ? 'sim-delta-worse' : 'sim-delta-same';
+        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px">SCR: ${scr}</span><br><span class="${cls}" style="font-size:11px">PLL: ${pll}</span>`;
+      })
+    },
+  ];
+
+  rows.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <span class="dimension-label">${row.label}</span>
+        <span class="dimension-sub">${row.sub}</span>
+      </td>
+      ${row.cells.map(c => `<td><div class="matrix-cell" style="align-items:center">${c}</div></td>`).join('')}
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Summary text
+  const typeLabels = {
+    gen_trip:    'Generator Trip',     line_outage: 'Line Outage',
+    load_change: 'Load Increase',      ibr_curtail: 'IBR Curtailment',
+    bess_inject: 'BESS Injection',     demand_resp: 'Demand Response',
+  };
+  const beneficial = ['bess_inject','demand_resp'].includes(type);
+  const effect = beneficial ? 'improve' : 'worsen';
+  const timing  = document.getElementById('sc-timing').value;
+
+  const predRoCoF = (BASE.freq.rocof[3] + (d.rocof||0)*hScale[3]*scale).toFixed(2);
+  const predNadir = (BASE.freq.nadir[3] + (d.nadir||0)*hScale[3]*scale).toFixed(2);
+  const predLI    = (BASE.volt.li[3]    + (d.li||0)*hScale[3]*scale).toFixed(2);
+  const predSCR   = (BASE.ibr.scr[3]   + (d.scr||0)*hScale[3]*scale).toFixed(2);
+
+  const summaryEl = document.getElementById('sim-summary-text');
+  summaryEl.innerHTML = `
+    A <strong>${typeLabels[type]}</strong> of <strong>${mag} MW</strong> at <strong>${loc}</strong>
+    occurring at <strong>${timing}</strong> is predicted to <strong>${effect}</strong> system stability indexes.
+    At the 5-minute horizon:
+    <ul style="margin:8px 0 0 16px; color:var(--text-muted)">
+      <li>Frequency: projected RoCoF <strong>${predRoCoF} Hz/s</strong>, nadir <strong>${predNadir} Hz</strong>
+        ${parseFloat(predNadir) < CONFIG.NADIR_WARN ? ' — <span style="color:var(--red)">below warn threshold!</span>' : ''}
+      </li>
+      <li>Voltage: projected L-Index <strong>${predLI}</strong>
+        ${parseFloat(predLI) >= CONFIG.L_INDEX_WARN ? ' — <span style="color:var(--red)">exceeds warn threshold!</span>' : ''}
+      </li>
+      <li>IBR: projected SCR <strong>${predSCR}</strong>
+        ${parseFloat(predSCR) < CONFIG.SCR_WARN ? ' — <span style="color:var(--amber)">below SCR warn threshold</span>' : ''}
+      </li>
+    </ul>
+    <span style="color:var(--amber);font-size:12px;display:block;margin-top:8px">⚠ This is a rule-based simulation only. Validate all projections in full dynamic simulation tool before acting. Act via SCADA.</span>
+  `;
+
+  document.getElementById('sim-output').classList.add('visible');
+}
+
+function clearScenario() {
+  document.getElementById('sim-output').classList.remove('visible');
+  document.getElementById('sim-matrix-body').innerHTML = '';
+  document.getElementById('sim-summary-text').innerHTML = '';
+}
+
+/* ============================================================
+   TIMESTAMP UPDATER
+============================================================ */
+let syncSeconds = 5;
+let wallClock = new Date();
+
+setInterval(() => {
+  syncSeconds++;
+  const el = document.getElementById('last-updated');
+  if (el) el.textContent = syncSeconds + 's ago';
+
+  // Reset to "just now" every 30 s to simulate periodic poll
+  if (syncSeconds >= 30) { syncSeconds = 0; }
+
+  wallClock = new Date();
+  const ft = document.getElementById('footer-ts');
+  if (ft) ft.textContent = 'Page time: ' + wallClock.toLocaleTimeString();
+}, 1000);
+
+/* ============================================================
+   INIT
+============================================================ */
+(function init() {
+  buildBusTable();
+  buildLineTable();
+  buildGenTable();
+})();
+</script>
+</body>
+</html>
