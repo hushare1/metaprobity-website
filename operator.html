@@ -332,36 +332,44 @@
     ============================================================ */
     #stability-matrix .matrix-table {
       width: 100%;
-      border-collapse: collapse;
+      border-collapse: separate;
+      border-spacing: 0;
       font-size: 13px;
     }
     #stability-matrix .matrix-table th {
       background: var(--bg-card-alt);
-      color: var(--text-muted);
-      font-weight: 600;
-      font-size: 11px;
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 13px;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
-      padding: 10px 14px;
-      border-bottom: 2px solid var(--border);
+      letter-spacing: 0.08em;
+      padding: 14px 20px;
+      border-bottom: 2px solid var(--accent);
       text-align: center;
     }
-    #stability-matrix .matrix-table th:first-child { text-align: left; min-width: 160px; }
+    #stability-matrix .matrix-table th:not(:first-child) {
+      border-left: 1px solid var(--border);
+      min-width: 200px;
+    }
+    #stability-matrix .matrix-table th:first-child { text-align: left; min-width: 180px; }
     #stability-matrix .matrix-table td {
-      padding: 11px 14px;
+      padding: 18px 20px;
       border-bottom: 1px solid var(--border-light);
       text-align: center;
       vertical-align: middle;
     }
+    #stability-matrix .matrix-table td:not(:first-child) {
+      border-left: 1px solid var(--border-light);
+    }
     #stability-matrix .matrix-table td:first-child { text-align: left; }
-    #stability-matrix .matrix-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+    #stability-matrix .matrix-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.025); }
     #stability-matrix .matrix-table tbody tr:hover td { background: var(--bg-card-hover); }
 
-    .dimension-label { font-weight: 600; color: var(--text-primary); display: block; font-size: 13px; }
-    .dimension-sub   { font-size: 11px; color: var(--text-dim); }
+    .dimension-label { font-weight: 700; color: var(--text-primary); display: block; font-size: 14px; }
+    .dimension-sub   { font-size: 12px; color: var(--text-muted); margin-top: 3px; display: block; }
 
-    .matrix-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .matrix-cell .metric-val  { font-size: 11px; color: var(--text-muted); font-family: 'Courier New', monospace; }
+    .matrix-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .matrix-cell .metric-val  { font-size: 13px; color: var(--text-primary); font-family: 'Courier New', monospace; line-height: 1.5; }
 
     /* ============================================================
        SECTION 4+5 ROW
@@ -692,12 +700,10 @@
   <!-- ============================================================
        3. STABILITY MATRIX
   ============================================================ -->
-  <div class="card" style="padding: 20px;">
-    <div class="section-heading">System Stability Risk by Horizon</div>
-    <table class="matrix-table" id="matrix-table">
+  <div class="card" id="stability-matrix" style="padding: 20px;">
       <thead>
         <tr>
-          <th style="width:160px">Dimension</th>
+          <th style="width:180px">Dimension</th>
           <th>1 sec</th>
           <th>30 sec</th>
           <th>2 min</th>
