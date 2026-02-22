@@ -6,6 +6,7 @@
   <title>GridSense-AI — Operator Decision Support</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="config.js"></script>
   <style>
     /* ============================================================
        CSS VARIABLES & RESET
@@ -598,6 +599,18 @@
       font-family: 'Courier New', monospace;
       font-size: 11px;
     }
+
+    /* Live data indicator dot */
+    .live-dot {
+      color: var(--green);
+      font-size: 9px;
+      vertical-align: middle;
+      animation: livePulse 1s ease-in-out infinite;
+    }
+    @keyframes livePulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
   </style>
 </head>
 <body>
@@ -634,12 +647,12 @@
   <!-- Left: System State -->
   <div class="sys-state">
     <div class="state-label">System State</div>
-    <div class="state-value">&#x25CF; NORMAL</div>
-    <div class="state-sub">Primary risk: <strong style="color:var(--amber)">Frequency</strong> &nbsp;|&nbsp; Secondary: <strong style="color:var(--amber)">Voltage</strong></div>
+    <div class="state-value" id="state-value">&#x25CF; NORMAL</div>
+    <div class="state-sub" id="state-sub">Primary risk: <strong style="color:var(--amber)">Frequency</strong> &nbsp;|&nbsp; Secondary: <strong style="color:var(--amber)">Voltage</strong></div>
   </div>
 
   <!-- Centre: Prediction Horizon Tiles -->
-  <div class="horizon-tiles">
+  <div class="horizon-tiles" id="horizon-tiles">
     <div class="horizon-tile">
       <span class="h-label">1 sec</span>
       <span class="chip chip-green">LOW</span>
@@ -665,8 +678,8 @@
   <!-- Right: Grid Utilisation Gauge -->
   <div class="utilisation-gauge">
     <div class="util-header">Grid Utilisation</div>
-    <div class="util-value">67%</div>
-    <div class="util-bar-track"><div class="util-bar-fill"></div></div>
+    <div class="util-value" id="util-value">67%</div>
+    <div class="util-bar-track"><div class="util-bar-fill" id="util-bar-fill"></div></div>
     <div class="util-sub">Secure transfer capacity used &nbsp;·&nbsp; 230 kV backbone</div>
   </div>
 </section>
@@ -692,7 +705,7 @@
         </tr>
       </thead>
       <tbody id="matrix-body">
-        <!-- Row: Frequency -->
+        <!-- Dynamically populated by buildMatrix() on live data update -->
         <tr>
           <td>
             <span class="dimension-label">⚡ Frequency</span>
@@ -1711,17 +1724,250 @@ function clearScenario() {
 /* ============================================================
    TIMESTAMP UPDATER
 ============================================================ */
-let syncSeconds = 5;
+/* ============================================================
+   BUILD STABILITY MATRIX (dynamic, driven by BASE data)
+============================================================ */
+function buildMatrix() {
+  const tbody = document.getElementById('matrix-body');
+  tbody.innerHTML = '';
+  const rows = [
+    {
+      label: '⚡ Frequency', sub: 'RoCoF · Nadir · FM',
+      cells: [0,1,2,3].map(h => {
+        const rocof = BASE.freq.rocof[h].toFixed(2);
+        const nadir = BASE.freq.nadir[h].toFixed(2);
+        const fm    = BASE.freq.fm[h].toFixed(2);
+        const lvl   = getLevel('freq', h);
+        const ltag  = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
+        return `${riskChip(lvl)}<span class="metric-val">RoCoF: &minus;${rocof} Hz/s${ltag}</span><span class="metric-val">Nadir: ${nadir} Hz</span><span class="metric-val">FM: ${fm} Hz</span>`;
+      })
+    },
+    {
+      label: '🔋 Voltage', sub: 'L-Index · V_min · Jac κ',
+      cells: [0,1,2,3].map(h => {
+        const li   = BASE.volt.li[h].toFixed(2);
+        const vmin = BASE.volt.vmin[h].toFixed(3);
+        const kj   = Math.round(BASE.volt.kj[h]);
+        const lvl  = getLevel('volt', h);
+        const ltag = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
+        return `${riskChip(lvl)}<span class="metric-val">L-Index: ${li}${ltag}</span><span class="metric-val">V_min: ${vmin} p.u.</span><span class="metric-val">κ(J): ${kj}</span>`;
+      })
+    },
+    {
+      label: '🌀 Transient', sub: 'CCT · MRAD · TSI',
+      cells: [0,1,2,3].map(h => {
+        const cct  = BASE.trans.cct[h];
+        const mrad = BASE.trans.mrad[h].toFixed(1);
+        const tsi  = BASE.trans.tsi[h].toFixed(2);
+        const lvl  = getLevel('trans', h);
+        return `${riskChip(lvl)}<span class="metric-val">CCT: ${cct} ms</span><span class="metric-val">MRAD: ${mrad}°</span><span class="metric-val">TSI: ${tsi}</span>`;
+      })
+    },
+    {
+      label: '〰️ Oscillation', sub: 'f_osc · ζ · T_settle',
+      cells: [0,1,2,3].map(h => {
+        const fosc = BASE.osc.fosc[h].toFixed(2);
+        const zeta = BASE.osc.zeta[h].toFixed(1);
+        const ts   = BASE.osc.ts[h].toFixed(1);
+        const lvl  = getLevel('osc', h);
+        return `${riskChip(lvl)}<span class="metric-val">f_osc: ${fosc} Hz</span><span class="metric-val">ζ: ${zeta}%</span><span class="metric-val">T_settle: ${ts} s</span>`;
+      })
+    },
+    {
+      label: '☀️ IBR Integration', sub: 'SCR · WSCR · PLL · IBR%',
+      cells: [0,1,2,3].map(h => {
+        const scr  = BASE.ibr.scr[h].toFixed(1);
+        const wscr = BASE.ibr.wscr[h].toFixed(1);
+        const pll  = BASE.ibr.pll[h].toFixed(2);
+        const lvl  = getLevel('ibr', h);
+        const ltag = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
+        return `${riskChip(lvl)}<span class="metric-val">SCR: ${scr}${ltag}</span><span class="metric-val">WSCR: ${wscr}</span><span class="metric-val">PLL margin: ${pll}</span><span class="metric-val">IBR pen.: 37%</span>`;
+      })
+    },
+  ];
+  rows.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><span class="dimension-label">${row.label}</span><span class="dimension-sub">${row.sub}</span></td>${row.cells.map(c => `<td><div class="matrix-cell">${c}</div></td>`).join('')}`;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ============================================================
+   BUILD / UPDATE HORIZON TILES
+============================================================ */
+function buildHorizonTiles() {
+  const ht = document.getElementById('horizon-tiles');
+  if (!ht) return;
+  const hKeys = ['freq','volt','trans','osc','ibr'];
+  const LEVELS = ['LOW','MEDIUM','HIGH','CRITICAL'];
+  const labels = ['1 sec','30 sec','2 min','5 min'];
+  ht.innerHTML = labels.map((label, h) => {
+    const worst = hKeys.reduce((best, row) => {
+      const lvl = getLevel(row, h);
+      return LEVELS.indexOf(lvl) > LEVELS.indexOf(best) ? lvl : best;
+    }, 'LOW');
+    const cls = {LOW:'chip-green',MEDIUM:'chip-amber',HIGH:'chip-red',CRITICAL:'chip-critical'}[worst];
+    const descs = [
+      `Freq stable · RoCoF &minus;${BASE.freq.rocof[0].toFixed(2)} Hz/s · Nadir ${BASE.freq.nadir[0].toFixed(2)} Hz`,
+      `Voltage L-Index ${BASE.volt.li[1].toFixed(2)} · All buses in range`,
+      `L-Index trending ↑ ${BASE.volt.li[2].toFixed(2)} · Bus 5 watch`,
+      `SCR ${BASE.ibr.scr[3].toFixed(1)} · PLL margin ${BASE.ibr.pll[3].toFixed(2)}`,
+    ];
+    const ltag = (liveConnected && h === 0) ? ' <span class="live-dot">●</span>' : '';
+    return `<div class="horizon-tile"><span class="h-label">${label}</span><span class="chip ${cls}">${worst}</span><span class="h-desc">${descs[h]}${ltag}</span></div>`;
+  }).join('');
+}
+
+/* ============================================================
+   UPDATE SYSTEM STATE BANNER
+============================================================ */
+function updateSystemState(d) {
+  const stateEl = document.getElementById('state-value');
+  const subEl   = document.getElementById('state-sub');
+  if (!stateEl) return;
+  let stateText = 'NORMAL', color = 'var(--green)';
+  if (d.alarm_flag) {
+    const txt = (d.alarm_text || '').toLowerCase();
+    if (txt.includes('critical') || txt.includes('emergency')) {
+      stateText = 'CRITICAL'; color = 'var(--red)';
+    } else {
+      stateText = 'ELEVATED'; color = 'var(--amber)';
+    }
+  }
+  stateEl.innerHTML = `<span style="color:${color}">&#x25CF; ${stateText}</span>`;
+  if (subEl && d.alarm_flag) subEl.textContent = d.alarm_text;
+}
+
+/* ============================================================
+   UPDATE GRID UTILISATION GAUGE
+============================================================ */
+function updateGridUtil(pct) {
+  const valEl = document.getElementById('util-value');
+  const barEl = document.getElementById('util-bar-fill');
+  if (valEl) valEl.textContent = pct + '%';
+  if (barEl) {
+    barEl.style.width = Math.min(pct, 100) + '%';
+    barEl.style.background = pct >= CONFIG.UTIL_CRIT ? 'var(--red)'
+                           : pct >= CONFIG.UTIL_WARN ? 'var(--amber)'
+                           : 'var(--green)';
+  }
+}
+
+/* ============================================================
+   APPLY LIVE API DATA → MUTATE BASE + BUS/LINE DATA → REDRAW
+============================================================ */
+let liveConnected = false;
+
+function applyLiveData(d) {
+  // Frequency (1-sec = live; 30s/2min/5min = trended projection)
+  const maxRoCoF = Math.max(...d.rocof_bus.map(r => Math.abs(r)));
+  const minFreq  = Math.min(...d.freq_bus);
+  const tMult    = [1.0, 1.17, 1.58, 1.92];
+  [0,1,2,3].forEach(h => {
+    BASE.freq.rocof[h] = maxRoCoF * tMult[h];
+    BASE.freq.nadir[h] = Math.max(48.5, minFreq - maxRoCoF * tMult[h] * 0.25);
+    BASE.freq.fm[h]    = Math.max(0, BASE.freq.nadir[h] - 48.8);
+  });
+
+  // Voltage (derive L-index from VSI: L = 1 − VSI)
+  const liArr  = d.v_stab_index_bus.map(vsi => 1 - vsi);
+  const avgLI  = liArr.reduce((a, b) => a + b, 0) / liArr.length;
+  const minV   = d.buses ? Math.min(...d.buses.map(b => b.voltage)) : 0.990;
+  const liGrow = [1.0, 1.04, 1.11, 1.19];
+  [0,1,2,3].forEach(h => {
+    BASE.volt.li[h]   = avgLI * liGrow[h];
+    BASE.volt.vmin[h] = Math.max(0.90, minV - h * 0.003);
+    BASE.volt.kj[h]   = Math.round(84 * (1 + avgLI * 0.6) * (1 + h * 0.12));
+  });
+
+  // Transient (CCT scales with system inertia H)
+  if (d.H_system) {
+    const hF = d.H_system / 4.5;
+    [218, 204, 183, 161].forEach((base, h) => { BASE.trans.cct[h] = Math.round(base * hF); });
+  }
+
+  // Per-bus live voltages & L-indices
+  if (d.buses) {
+    d.buses.forEach((bus, i) => {
+      if (i < BUS_DATA.length) {
+        BUS_DATA[i].v  = bus.voltage;
+        BUS_DATA[i].li = parseFloat((1 - d.v_stab_index_bus[i]).toFixed(2));
+        const fDev = Math.abs(bus.frequency - 50.0);
+        BUS_DATA[i].fsn = fDev > 0.3 ? 'High' : fDev > 0.1 ? 'Medium' : 'Low';
+      }
+    });
+  }
+
+  // Per-line live loading
+  if (d.lines) {
+    d.lines.forEach((line, i) => {
+      if (i < LINE_DATA.length) {
+        LINE_DATA[i].load = Math.round(line.loading_pct);
+        LINE_DATA[i].tm   = Math.max(0, Math.round((100 - line.loading_pct) * 1.8));
+      }
+    });
+    const avgLoad = d.lines.reduce((a, l) => a + l.loading_pct, 0) / d.lines.length;
+    updateGridUtil(Math.round(avgLoad));
+  }
+
+  updateSystemState(d);
+  buildMatrix();
+  buildHorizonTiles();
+  buildBusTable();
+  buildLineTable();
+
+  syncSeconds = 0;
+  const el = document.getElementById('last-updated');
+  if (el) el.textContent = 'just now';
+}
+
+/* ============================================================
+   LIVE DATA — EventSource (SSE) with polling fallback
+============================================================ */
+function startLiveUpdates() {
+  const backendUrl = (typeof GRIDSENSE_CONFIG !== 'undefined')
+    ? GRIDSENSE_CONFIG.backendUrl
+    : 'https://gridsense-ai.onrender.com';
+
+  let es = null;
+
+  function connectSSE() {
+    if (es) { try { es.close(); } catch(e) {} }
+    es = new EventSource(backendUrl + '/api/stream');
+    es.onopen = () => { liveConnected = true; };
+    es.onmessage = (event) => {
+      try {
+        const d = JSON.parse(event.data);
+        if (d && !d.error) applyLiveData(d);
+      } catch(e) { console.warn('SSE parse error:', e); }
+    };
+    es.onerror = () => { liveConnected = false; es.close(); startPolling(backendUrl); };
+  }
+
+  function startPolling(url) {
+    const poll = async () => {
+      try {
+        const r = await fetch(url + '/api/latest');
+        if (r.ok) { liveConnected = true; applyLiveData(await r.json()); }
+      } catch(e) { liveConnected = false; }
+      setTimeout(poll, 1000);
+    };
+    poll();
+  }
+
+  connectSSE();
+}
+
+/* ============================================================
+   TIMESTAMP TICKER
+============================================================ */
+let syncSeconds = 0;
 let wallClock = new Date();
 
 setInterval(() => {
   syncSeconds++;
   const el = document.getElementById('last-updated');
-  if (el) el.textContent = syncSeconds + 's ago';
-
-  // Reset to "just now" every 30 s to simulate periodic poll
-  if (syncSeconds >= 30) { syncSeconds = 0; }
-
+  if (el && syncSeconds > 0) el.textContent = syncSeconds + 's ago';
   wallClock = new Date();
   const ft = document.getElementById('footer-ts');
   if (ft) ft.textContent = 'Page time: ' + wallClock.toLocaleTimeString();
@@ -1731,9 +1977,12 @@ setInterval(() => {
    INIT
 ============================================================ */
 (function init() {
+  buildMatrix();        // render from static BASE while waiting for live data
   buildBusTable();
   buildLineTable();
   buildGenTable();
+  buildHorizonTiles();  // render horizon tiles
+  startLiveUpdates();   // connect to GridSense-AI backend stream
 })();
 </script>
 </body>
