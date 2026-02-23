@@ -1343,16 +1343,15 @@ const CONFIG = {
    LIVE DATA — IEEE 9-Bus static dummy values
 ============================================================ */
 const BUS_DATA = [
-  // [id, voltage, lIndex, freqSupportNeed, oscParticipation, worstHorizon, risk, action]
-  { id:'Bus 1', v:1.040, li:0.14, fsn:'Low',    osc:0.11, wh:'1 sec',  risk:'LOW',    action:'No immediate action required. Slack bus — monitor for unexpected power swings.' },
-  { id:'Bus 2', v:1.025, li:0.28, fsn:'Low',    osc:0.82, wh:'Current',risk:'MEDIUM', action:'Verify PSS on G2 (Bus 2) active — dominant inter-area oscillation source.' },
-  { id:'Bus 3', v:1.025, li:0.31, fsn:'Medium', osc:0.74, wh:'Current',risk:'MEDIUM', action:'Monitor G3 (Bus 3) rotor angle and PSS output — co-source of 0.25 Hz mode.' },
-  { id:'Bus 4', v:1.026, li:0.38, fsn:'Low',    osc:0.22, wh:'2 min',  risk:'LOW',    action:'No immediate action. Monitor voltage trend — sub-transmission junction bus.' },
-  { id:'Bus 5', v:0.996, li:0.47, fsn:'High',   osc:0.19, wh:'5 min',  risk:'HIGH',   action:'Enable capacitor bank at Bus 5 in SCADA — L-index trending toward warn threshold.' },
-  { id:'Bus 6', v:1.013, li:0.39, fsn:'Medium', osc:0.15, wh:'2 min',  risk:'LOW',    action:'No immediate action. Verify load-side reactive demand has not increased.' },
-  { id:'Bus 7', v:1.026, li:0.51, fsn:'Medium', osc:0.51, wh:'30 sec', risk:'MEDIUM', action:'Bus 7 is oscillation sink — check load modulation. Verify dynamic load model.' },
-  { id:'Bus 8', v:1.016, li:0.44, fsn:'Low',    osc:0.33, wh:'5 min',  risk:'LOW',    action:'No immediate action. Loading on line 8–9 is elevated — monitor thermal margin.' },
-  { id:'Bus 9', v:1.032, li:0.42, fsn:'Medium', osc:0.38, wh:'5 min',  risk:'MEDIUM', action:'IBR-2 PCC — ensure PLL margin does not drop below 0.30 as SCR tightens.' },
+  { id:'Bus 1', v:1.040, li:0.14, fsn:'Low',  osc:0.11, wh:'1 sec',  risk:'LOW', action:'' },
+  { id:'Bus 2', v:1.025, li:0.18, fsn:'Low',  osc:0.82, wh:'Current',risk:'LOW', action:'' },
+  { id:'Bus 3', v:1.025, li:0.18, fsn:'Low',  osc:0.74, wh:'Current',risk:'LOW', action:'' },
+  { id:'Bus 4', v:1.026, li:0.20, fsn:'Low',  osc:0.22, wh:'2 min',  risk:'LOW', action:'' },
+  { id:'Bus 5', v:0.996, li:0.22, fsn:'Low',  osc:0.19, wh:'5 min',  risk:'LOW', action:'' },
+  { id:'Bus 6', v:1.013, li:0.20, fsn:'Low',  osc:0.15, wh:'2 min',  risk:'LOW', action:'' },
+  { id:'Bus 7', v:1.026, li:0.22, fsn:'Low',  osc:0.51, wh:'30 sec', risk:'LOW', action:'' },
+  { id:'Bus 8', v:1.016, li:0.20, fsn:'Low',  osc:0.33, wh:'5 min',  risk:'LOW', action:'' },
+  { id:'Bus 9', v:1.032, li:0.21, fsn:'Low',  osc:0.38, wh:'5 min',  risk:'LOW', action:'' },
 ];
 
 const LINE_DATA = [
@@ -1387,12 +1386,34 @@ function riskChip(level) {
 /* ============================================================
    POPULATE SPATIAL TABLES
 ============================================================ */
+function busRiskFromLive(b) {
+  // Compute risk dynamically from live voltage, L-Index and freq support need
+  if (b.li >= CONFIG.L_INDEX_CRIT || b.v <= CONFIG.V_MIN_CRIT) return 'CRITICAL';
+  if (b.li >= CONFIG.L_INDEX_WARN || b.v <= CONFIG.V_MIN_WARN || b.fsn === 'High') return 'HIGH';
+  if (b.li > 0.40 || b.fsn === 'Medium') return 'MEDIUM';
+  return 'LOW';
+}
+
+function busActionFromLive(b, ri) {
+  if (ri === 'LOW')      return 'No action required. Bus operating within all normal limits.';
+  if (ri === 'CRITICAL') return `Bus ${b.id}: voltage or voltage-stability index critical — immediate SCADA intervention required.`;
+  if (ri === 'HIGH') {
+    if (b.li >= CONFIG.L_INDEX_WARN) return `${b.id}: L-Index ${b.li.toFixed(2)} approaching warn threshold (${CONFIG.L_INDEX_WARN}). Consider reactive support.`;
+    if (b.v  <= CONFIG.V_MIN_WARN)   return `${b.id}: voltage ${b.v.toFixed(3)} p.u. near lower limit. Verify reactive compensation.`;
+    return `${b.id}: high frequency support demand — monitor governor response.`;
+  }
+  // MEDIUM
+  if (b.li > 0.40) return `${b.id}: L-Index ${b.li.toFixed(2)} — monitor trend. No immediate action.`;
+  return `${b.id}: moderate frequency support demand — verify PSS active.`;
+}
+
 function buildBusTable() {
   const tbody = document.getElementById('body-buses');
   tbody.innerHTML = '';
   BUS_DATA.forEach(b => {
-    const ri = b.risk;
-    const rowClass = ri === 'HIGH' ? 'row-high' : (ri === 'MEDIUM' ? 'row-warn' : '');
+    const ri = busRiskFromLive(b);
+    const action = busActionFromLive(b, ri);
+    const rowClass = ri === 'HIGH' || ri === 'CRITICAL' ? 'row-high' : (ri === 'MEDIUM' ? 'row-warn' : '');
     const liColor = b.li >= CONFIG.L_INDEX_CRIT ? 'var(--red)' : b.li >= CONFIG.L_INDEX_WARN ? 'var(--amber)' : 'var(--green)';
     const vColor  = b.v  <= CONFIG.V_MIN_CRIT   ? 'var(--red)' : b.v  <= CONFIG.V_MIN_WARN   ? 'var(--amber)' : 'var(--green)';
     tbody.innerHTML += `
@@ -1404,7 +1425,7 @@ function buildBusTable() {
         <td style="font-family:monospace">${b.osc.toFixed(2)}</td>
         <td>${b.wh}</td>
         <td>${riskChip(ri)}</td>
-        <td style="color:var(--text-muted);font-size:12px;max-width:220px">${b.action}</td>
+        <td style="color:var(--text-muted);font-size:12px;max-width:220px">${action}</td>
       </tr>`;
   });
 }
