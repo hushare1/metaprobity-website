@@ -1348,13 +1348,17 @@ const GEN_DATA = [
 ];
 
 /* Oscillation participation data (IEEE 9-bus, inter-area mode 1) */
-const OSC_ELEMENTS = [
+let OSC_ELEMENTS = [
   { name:'G2',       type:'SG — Bus 2',     part:0.82, role:'Source',  horizon:'Current' },
   { name:'G3',       type:'SG — Bus 3',     part:0.74, role:'Source',  horizon:'Current' },
   { name:'Bus 7',    type:'Load Bus',        part:0.51, role:'Sink',    horizon:'30 sec'  },
   { name:'IBR-2',    type:'GFL — Bus 9',    part:0.38, role:'Neutral', horizon:'2 min'   },
   { name:'Line 5–7', type:'Transmission',   part:0.29, role:'Neutral', horizon:'5 min'   },
 ];
+// Populated by applyLiveData() when the backend Prony estimator returns
+// confidence > 0.5 (i.e. real oscillatory content detected).
+// Falls back to OSC_ELEMENTS defaults in steady-state.
+let LIVE_OSC_ELEMENTS = null;
 
 /* ============================================================
    CHIP HELPERS
@@ -1525,6 +1529,8 @@ function buildOscElements() {
   const tbody = document.getElementById('body-osc-el');
   if (!tbody) return;
   const z0 = BASE.osc.zeta[0];
+  // Use live Prony-estimated participants when available; fall back to static defaults.
+  const elements = LIVE_OSC_ELEMENTS || OSC_ELEMENTS;
   function roleHtml(role) {
     if (role === 'Neutral') return `<span style="color:var(--text-muted)">Neutral</span>`;
     // Source/Sink colour driven by Mode 1 damping — neutral when healthy
@@ -1533,13 +1539,13 @@ function buildOscElements() {
               : 'var(--text-muted)';
     return `<span style="color:${col};font-weight:600">${role}</span>`;
   }
-  tbody.innerHTML = OSC_ELEMENTS.map(el => {
+  tbody.innerHTML = elements.map(el => {
     const isWarn = (el.role === 'Source' || el.role === 'Sink')
                 && z0 < CONFIG.DAMPING_WARN * 100;
     return `<tr${isWarn ? ' class="row-warn"' : ''}>
       <td><strong>${el.name}</strong></td>
       <td>${el.type}</td>
-      <td>${el.part.toFixed(2)}</td>
+      <td>${(+el.part).toFixed(2)}</td>
       <td>${roleHtml(el.role)}</td>
       <td>${el.horizon}</td>
     </tr>`;
@@ -2182,6 +2188,47 @@ function applyLiveData(d) {
     });
     const avgLoad = d.lines.reduce((a, l) => a + l.loading_pct, 0) / d.lines.length;
     updateGridUtil(Math.round(avgLoad));
+  }
+
+  // --- Modal analysis: update BASE.osc from backend Prony (Matrix Pencil) ---
+  // confidence > 0.5 = real oscillatory content detected; update osc parameters.
+  // In steady-state (confidence = 0) we preserve last known healthy defaults.
+  if (d.modal && d.modal.confidence > 0.5 && Array.isArray(d.modal.modes)) {
+    d.modal.modes.forEach((m, i) => {
+      if (i < 4) {
+        if (+m.zeta_pct > 0) BASE.osc.zeta[i] = +m.zeta_pct;
+        if (+m.freq_hz  > 0) BASE.osc.fosc[i] = +m.freq_hz;
+        if (+m.ts_s     > 0) BASE.osc.ts[i]   = +m.ts_s;
+      }
+    });
+    // Rebuild top-5 oscillation-critical elements table from mode 0 participation factors
+    const m0 = d.modal.modes[0];
+    if (m0 && Array.isArray(m0.participants) && m0.participants.length >= 3) {
+      LIVE_OSC_ELEMENTS = m0.participants.map((p, idx) => ({
+        name   : p.name     || `Bus ${p.bus_id}`,
+        type   : p.bus_type || '',
+        part   : +p.participation_factor || 0,
+        role   : p.role     || 'Neutral',
+        horizon: idx === 0 ? 'Current' : idx < 3 ? '30 sec' : '2 min',
+      }));
+    }
+  }
+
+  // --- Network analysis: update BASE.ibr from live Thevenin SCR & PLL margin ---
+  // SCR = V²/(Z_eff × S_rated) is recomputed every EKF tick with live bus voltages.
+  if (d.network) {
+    const ibr2 = d.network['IBR-2'];
+    const ibr1 = d.network['IBR-1'];
+    if (ibr2) {
+      BASE.ibr.scr[0] = ibr2.scr;
+      BASE.ibr.pll[0] = ibr2.pll_margin;
+    }
+    if (ibr1 && ibr2) {
+      // Weighted SCR: (SCR_1×S_1 + SCR_2×S_2) / (S_1 + S_2) on 100 MVA base
+      const s1 = 0.60, s2 = 0.50;
+      BASE.ibr.wscr[0] = parseFloat(((ibr1.scr * s1 + ibr2.scr * s2) / (s1 + s2)).toFixed(2));
+    }
+    if (ibr1) BASE.ibr.scr[1] = ibr1.scr;  // GFM slot for secondary indicator
   }
 
   updateSystemState(d);
