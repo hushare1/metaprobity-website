@@ -309,7 +309,7 @@
 
     .utilisation-gauge { display: flex; flex-direction: column; gap: 8px; }
     .util-header { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
-    .util-value  { font-size: 28px; font-weight: 700; color: var(--amber); letter-spacing: -0.03em; }
+    .util-value  { font-size: 28px; font-weight: 700; color: var(--green); letter-spacing: -0.03em; }
     .util-bar-track {
       height: 6px;
       background: var(--border);
@@ -1890,7 +1890,12 @@ function updateSystemState(d) {
 function updateGridUtil(pct) {
   const valEl = document.getElementById('util-value');
   const barEl = document.getElementById('util-bar-fill');
-  if (valEl) valEl.textContent = pct + '%';
+  if (valEl) {
+    valEl.textContent = pct + '%';
+    valEl.style.color = pct >= CONFIG.UTIL_CRIT ? 'var(--red)'
+                      : pct >= CONFIG.UTIL_WARN ? 'var(--amber)'
+                      : 'var(--green)';
+  }
   if (barEl) {
     barEl.style.width = Math.min(pct, 100) + '%';
     barEl.style.background = pct >= CONFIG.UTIL_CRIT ? 'var(--red)'
