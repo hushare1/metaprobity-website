@@ -442,6 +442,7 @@
       padding: 2px 7px;
       border-radius: 3px;
     }
+    .p-critical{ background: rgba(239,68,68,0.2);  color: var(--red);   border: 1px solid rgba(239,68,68,0.5); font-weight:700; }
     .p-high   { background: var(--red-bg);   color: var(--red);   border: 1px solid rgba(239,68,68,0.3); }
     .p-medium { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
     .p-low    { background: var(--green-bg); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
@@ -1048,38 +1049,9 @@
     ============================================================ -->
     <div id="actions-panel" class="card" style="padding: 20px; align-self: start;">
       <div class="section-heading">Recommended Actions (Next 5 min)</div>
-
-      <div class="action-card">
-        <div class="action-top">
-          <span class="priority-badge p-high">HIGH</span>
-          <span class="action-location">Bus 5 · Voltage</span>
-          <span class="action-icon">🔋</span>
-        </div>
-        <div class="action-text">
-          <strong>Increase reactive support near Bus 5.</strong> Voltage L-Index approaching 0.56 (warn threshold 0.50, trending toward 0.64 in 5 min). <em>Consider enabling capacitor bank or requesting reactive injection from IBR-1 in SCADA before L-Index breaches 0.65.</em>
-        </div>
-      </div>
-
-      <div class="action-card">
-        <div class="action-top">
-          <span class="priority-badge p-medium">MEDIUM</span>
-          <span class="action-location">G2 · Oscillation</span>
-          <span class="action-icon">〰️</span>
-        </div>
-        <div class="action-text">
-          <strong>Monitor inter-area mode damping on G2.</strong> G2–G3 inter-area mode at 0.25 Hz shows damping ratio 4.1% — trending toward warn limit of 5.0%. <em>Verify PSS settings on G2 are active and scheduler redispatch is not reducing governor headroom.</em>
-        </div>
-      </div>
-
-      <div class="action-card">
-        <div class="action-top">
-          <span class="priority-badge p-medium">MEDIUM</span>
-          <span class="action-location">IBR-2 · SCR / PLL</span>
-          <span class="action-icon">☀️</span>
-        </div>
-        <div class="action-text">
-          <strong>SCR at Bus 9 (IBR-2 PCC) expected to tighten to 2.9 in 5 min.</strong> Forecasted additional IBR output in area. <em>Verify IBR-2 PLL synchronisation margin stays above 0.30 in SCADA. Consider limiting IBR-2 active power ramp rate if SCR approaches 2.5.</em>
-        </div>
+      <div id="actions-list">
+        <!-- Populated dynamically by buildActionsPanel() -->
+        <div style="color:var(--text-muted);font-size:13px;padding:12px 0">Loading live data…</div>
       </div>
     </div>
   </div>
@@ -1879,8 +1851,128 @@ function buildHorizonTiles() {
 }
 
 /* ============================================================
-   UPDATE SYSTEM STATE BANNER
+   BUILD RECOMMENDED ACTIONS — fully driven by live data
 ============================================================ */
+function buildActionsPanel() {
+  const el = document.getElementById('actions-list');
+  if (!el) return;
+
+  const actions = [];
+
+  // --- Voltage / L-Index per bus ---
+  BUS_DATA.forEach(b => {
+    if (b.li >= CONFIG.L_INDEX_CRIT) {
+      actions.push({ level:'CRITICAL', icon:'🔋', loc:`${b.id} · Voltage`,
+        title:`Critical voltage instability at ${b.id}.`,
+        body:`L-Index ${b.li.toFixed(2)} has breached critical threshold (${CONFIG.L_INDEX_CRIT}). <em>Immediate reactive support required via SCADA. Check capacitor banks and IBR reactive dispatch.</em>` });
+    } else if (b.li >= CONFIG.L_INDEX_WARN) {
+      actions.push({ level:'HIGH', icon:'🔋', loc:`${b.id} · Voltage`,
+        title:`Increase reactive support near ${b.id}.`,
+        body:`L-Index ${b.li.toFixed(2)} has reached warn threshold (${CONFIG.L_INDEX_WARN}). <em>Consider enabling capacitor bank or requesting reactive injection from nearest IBR in SCADA.</em>` });
+    } else if (b.li > 0.40) {
+      actions.push({ level:'MEDIUM', icon:'🔋', loc:`${b.id} · Voltage`,
+        title:`Monitor voltage stability at ${b.id}.`,
+        body:`L-Index ${b.li.toFixed(2)} is elevated (warn at ${CONFIG.L_INDEX_WARN}). <em>No immediate action — monitor trend over next 5 min.</em>` });
+    }
+    if (b.v <= CONFIG.V_MIN_CRIT) {
+      actions.push({ level:'CRITICAL', icon:'⚡', loc:`${b.id} · Undervoltage`,
+        title:`Undervoltage at ${b.id}: ${b.v.toFixed(3)} p.u.`,
+        body:`Voltage below critical limit (${CONFIG.V_MIN_CRIT} p.u.). <em>Act via SCADA immediately — check reactive compensation and transformer tap.</em>` });
+    } else if (b.v <= CONFIG.V_MIN_WARN) {
+      actions.push({ level:'HIGH', icon:'⚡', loc:`${b.id} · Undervoltage`,
+        title:`Low voltage at ${b.id}: ${b.v.toFixed(3)} p.u.`,
+        body:`Voltage approaching lower limit (${CONFIG.V_MIN_WARN} p.u.). <em>Verify reactive demand has not increased — check shunt compensation status in SCADA.</em>` });
+    }
+  });
+
+  // --- Frequency / RoCoF ---
+  const rocof0 = BASE.freq.rocof[0];
+  const nadir0 = BASE.freq.nadir[0];
+  if (rocof0 > CONFIG.RoCoF_LIMIT) {
+    actions.push({ level:'CRITICAL', icon:'📉', loc:'System · RoCoF',
+      title:`RoCoF ${rocof0.toFixed(2)} Hz/s exceeds limit.`,
+      body:`RoCoF has breached ENTSO-E limit (${CONFIG.RoCoF_LIMIT} Hz/s). <em>Activate fast-frequency response reserves via SCADA immediately.</em>` });
+  } else if (rocof0 > CONFIG.RoCoF_LIMIT * 0.6) {
+    actions.push({ level:'HIGH', icon:'📉', loc:'System · RoCoF',
+      title:`Elevated RoCoF: ${rocof0.toFixed(2)} Hz/s.`,
+      body:`RoCoF approaching limit (${CONFIG.RoCoF_LIMIT} Hz/s). <em>Verify FFR assets are armed and governor response is active.</em>` });
+  }
+  if (nadir0 < CONFIG.NADIR_CRIT) {
+    actions.push({ level:'CRITICAL', icon:'📉', loc:'System · Frequency Nadir',
+      title:`Frequency nadir ${nadir0.toFixed(2)} Hz — critical.`,
+      body:`Predicted nadir below ${CONFIG.NADIR_CRIT} Hz. <em>Deploy under-frequency load shedding if frequency does not recover.</em>` });
+  } else if (nadir0 < CONFIG.NADIR_WARN) {
+    actions.push({ level:'HIGH', icon:'📉', loc:'System · Frequency Nadir',
+      title:`Frequency nadir ${nadir0.toFixed(2)} Hz — below warn.`,
+      body:`Predicted nadir below ${CONFIG.NADIR_WARN} Hz. <em>Ensure frequency response reserves are available and dispatched.</em>` });
+  }
+
+  // --- Inertia ---
+  const H = BASE.trans.cct[0] > 0 ? (BASE.trans.cct[0] / 218 * 4.5) : null;
+  if (liveConnected && H !== null && H < 3.5) {
+    actions.push({ level:'HIGH', icon:'🔄', loc:'System · Inertia',
+      title:`Low system inertia: H ≈ ${H.toFixed(2)} s.`,
+      body:`Estimated inertia below 3.5 s — grid more susceptible to frequency excursions. <em>Avoid tripping synchronous generators. Consider enabling virtual inertia on grid-forming IBRs.</em>` });
+  }
+
+  // --- IBR SCR (5-min horizon) ---
+  const scr5 = BASE.ibr.scr[3];
+  const pll5 = BASE.ibr.pll[3];
+  if (scr5 < CONFIG.SCR_CRIT) {
+    actions.push({ level:'CRITICAL', icon:'☀️', loc:'IBR · SCR',
+      title:`SCR critical at 5-min horizon: ${scr5.toFixed(1)}.`,
+      body:`SCR below ${CONFIG.SCR_CRIT} — IBR PLL stability at risk. <em>Curtail IBR output or despatch synchronous reserve to strengthen SCR via SCADA.</em>` });
+  } else if (scr5 < CONFIG.SCR_WARN) {
+    actions.push({ level:'HIGH', icon:'☀️', loc:'IBR · SCR / PLL',
+      title:`SCR tightening to ${scr5.toFixed(1)} at 5-min horizon.`,
+      body:`SCR approaching warn threshold (${CONFIG.SCR_WARN}). PLL margin ${pll5.toFixed(2)}. <em>Verify IBR-2 current limiter is active. Consider limiting IBR ramp rate if SCR approaches 2.5.</em>` });
+  } else if (pll5 < CONFIG.PLL_MARGIN_WARN) {
+    actions.push({ level:'MEDIUM', icon:'☀️', loc:'IBR-2 · PLL',
+      title:`IBR-2 PLL margin trending low: ${pll5.toFixed(2)}.`,
+      body:`PLL synchronisation margin approaching warn limit (${CONFIG.PLL_MARGIN_WARN}). <em>Monitor IBR-2 at Bus 9. Verify PLL bandwidth settings in SCADA.</em>` });
+  }
+
+  // --- Oscillation damping ---
+  const zeta1 = BASE.osc.zeta[0] / 100;
+  if (zeta1 < CONFIG.DAMPING_CRIT) {
+    actions.push({ level:'CRITICAL', icon:'〰️', loc:'System · Oscillation',
+      title:`Oscillation damping critical: ζ = ${(zeta1*100).toFixed(1)}%.`,
+      body:`Damping below ${(CONFIG.DAMPING_CRIT*100)}% — risk of growing inter-area oscillations. <em>Verify all PSSs are in service. Redispatch generation if oscillation amplitude increases.</em>` });
+  } else if (zeta1 < CONFIG.DAMPING_WARN) {
+    actions.push({ level:'HIGH', icon:'〰️', loc:'System · Oscillation',
+      title:`Low oscillation damping: ζ = ${(zeta1*100).toFixed(1)}%.`,
+      body:`Damping below warn limit (${(CONFIG.DAMPING_WARN*100)}%). <em>Verify PSS action on G2 and G3. Avoid generation redispatch that reduces governor headroom.</em>` });
+  }
+
+  // Sort: CRITICAL first, then HIGH, MEDIUM, LOW
+  const order = { CRITICAL:0, HIGH:1, MEDIUM:2, LOW:3 };
+  actions.sort((a, b) => order[a.level] - order[b.level]);
+
+  // Render top 3 (or "all clear" if none)
+  const badgeClass = { CRITICAL:'p-critical', HIGH:'p-high', MEDIUM:'p-medium', LOW:'p-low' };
+  if (actions.length === 0) {
+    el.innerHTML = `<div class="action-card" style="border-left-color:var(--green)">
+      <div class="action-top">
+        <span class="priority-badge" style="background:rgba(16,185,129,0.15);color:var(--green);border:1px solid rgba(16,185,129,0.3)">ALL CLEAR</span>
+        <span class="action-location">System · All Dimensions</span>
+        <span class="action-icon">✅</span>
+      </div>
+      <div class="action-text"><strong>No actions required.</strong> All buses, lines, and system indicators are within normal operating limits. <em>Continue routine monitoring via SCADA.</em></div>
+    </div>`;
+  } else {
+    el.innerHTML = actions.slice(0, 3).map(a => `
+      <div class="action-card">
+        <div class="action-top">
+          <span class="priority-badge ${badgeClass[a.level] || ''}">${a.level}</span>
+          <span class="action-location">${a.loc}</span>
+          <span class="action-icon">${a.icon}</span>
+        </div>
+        <div class="action-text"><strong>${a.title}</strong> ${a.body}</div>
+      </div>`).join('');
+  }
+}
+
+
 function updateSystemState(d) {
   const stateEl = document.getElementById('state-value');
   const subEl   = document.getElementById('state-sub');
@@ -1997,6 +2089,7 @@ function applyLiveData(d) {
   buildHorizonTiles();
   buildBusTable();
   buildLineTable();
+  buildActionsPanel();
 
   syncSeconds = 0;
   const el = document.getElementById('last-updated');
@@ -2036,6 +2129,7 @@ function applyForecastData(f) {
   FORECAST_DATA = f;
   buildMatrix();
   buildHorizonTiles();
+  buildActionsPanel();
 }
 
 /* ============================================================
@@ -2127,6 +2221,7 @@ setInterval(() => {
   buildLineTable();
   buildGenTable();
   buildHorizonTiles();  // render horizon tiles
+  buildActionsPanel();  // render recommended actions
   startLiveUpdates();   // connect to GridSense-AI backend stream
 })();
 </script>
