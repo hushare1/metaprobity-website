@@ -1520,7 +1520,7 @@ const BASE = {
   volt:  { li:[0.47,0.49,0.52,0.56],    vmin:[0.996,0.994,0.991,0.988],  kj:[84,88,101,114] },
   trans: { cct:[218,204,183,161],        mrad:[22.4,25.1,29.8,34.7],      tsi:[0.72,0.67,0.58,0.43] },
   osc:   { fosc:[0.25,0.25,0.24,0.24],  zeta:[8.5,8.2,7.8,7.2],          ts:[38.2,40.1,43.6,46.8] },
-  ibr:   { scr:[3.4,3.3,3.1,2.9],       wscr:[2.9,2.8,2.6,2.4],          pll:[0.41,0.39,0.34,0.31] },
+  ibr:   { scr:[4.2,4.1,3.9,3.8],       wscr:[3.6,3.5,3.3,3.2],          pll:[0.52,0.50,0.48,0.46] },
 };
 
 const DELTA_RULES = {
@@ -1552,7 +1552,7 @@ function getLevel(row, h) {
     const cct = BASE.trans.cct[h];
     if (cct < CONFIG.CCT_CRIT) return 'CRITICAL';
     if (cct < CONFIG.CCT_WARN) return 'HIGH';
-    if (cct < 180) return 'MEDIUM';
+    if (cct < 160) return 'MEDIUM';
     return 'LOW';
   }
   if (row === 'osc') {
