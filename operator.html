@@ -1874,7 +1874,14 @@ function updateSystemState(d) {
     }
   }
   stateEl.innerHTML = `<span style="color:${color}">&#x25CF; ${stateText}</span>`;
-  if (subEl && d.alarm_flag) subEl.textContent = d.alarm_text;
+  if (subEl) {
+    const hVal = d.H_system != null ? `H=${d.H_system.toFixed(2)} s` : '';
+    const dVal = d.D_system != null ? `D=${d.D_system.toFixed(2)} p.u.` : '';
+    const inertiaStr = [hVal, dVal].filter(Boolean).join(' &middot; ');
+    subEl.innerHTML = d.alarm_flag
+      ? `${d.alarm_text} &nbsp;|&nbsp; ${inertiaStr}`
+      : `System inertia: <strong>${inertiaStr}</strong>`;
+  }
 }
 
 /* ============================================================
