@@ -2001,7 +2001,8 @@ function applyForecastData(f) {
     BASE.volt.kj[b]   = Math.round(84 * (1 + li * 0.6) * (1 + idx * 0.12));
 
     // Transient: CCT scales with predicted inertia H at that horizon
-    BASE.trans.cct[b]  = Math.round(BASE.trans.cct[0] * hF * Math.pow(0.93, idx + 1));
+    // Use 0.99 decay — normal operation should not degrade CCT significantly across horizons
+    BASE.trans.cct[b]  = Math.round(BASE.trans.cct[0] * hF * Math.pow(0.99, idx + 1));
     BASE.trans.mrad[b] = Math.min(90, BASE.trans.mrad[0] * (1 + (idx + 1) * 0.12));
     BASE.trans.tsi[b]  = Math.max(0.0, BASE.trans.tsi[0] - (idx + 1) * 0.07);
   });
