@@ -244,6 +244,7 @@
       font-weight: 600;
       padding: 3px 10px;
       letter-spacing: 0.03em;
+      white-space: nowrap;
     }
     .badge-sync {
       display: flex;
@@ -256,6 +257,13 @@
       font-size: 11px;
       font-weight: 500;
       padding: 3px 10px;
+      white-space: nowrap;
+      min-width: 310px;         /* wide enough for longest text — no reflow */
+    }
+    #last-updated {
+      display: inline-block;
+      min-width: 52px;          /* "2 min ago" is widest; keeps badge stable */
+      text-align: right;
     }
     .sync-dot {
       width: 6px; height: 6px;
@@ -1814,15 +1822,38 @@ function buildHorizonTiles() {
       const lvl = getLevel(row, h);
       return LEVELS.indexOf(lvl) > LEVELS.indexOf(best) ? lvl : best;
     }, 'LOW');
-    const cls = {LOW:'chip-green',MEDIUM:'chip-amber',HIGH:'chip-red',CRITICAL:'chip-critical'}[worst];
-    const descs = [
-      `Freq stable · RoCoF &minus;${BASE.freq.rocof[0].toFixed(2)} Hz/s · Nadir ${BASE.freq.nadir[0].toFixed(2)} Hz`,
-      `Voltage L-Index ${BASE.volt.li[1].toFixed(2)} · All buses in range`,
-      `L-Index trending ↑ ${BASE.volt.li[2].toFixed(2)} · Bus 5 watch`,
-      `SCR ${BASE.ibr.scr[3].toFixed(1)} · PLL margin ${BASE.ibr.pll[3].toFixed(2)}`,
-    ];
-    const ltag = (liveConnected && h === 0) ? ' <span class="live-dot">●</span>' : '';
-    return `<div class="horizon-tile"><span class="h-label">${label}</span><span class="chip ${cls}">${worst}</span><span class="h-desc">${descs[h]}${ltag}</span></div>`;
+    const cls    = {LOW:'chip-green',MEDIUM:'chip-amber',HIGH:'chip-red',CRITICAL:'chip-critical'}[worst];
+    const liveTag = (liveConnected && h === 0) ? ' <span class="live-dot">●</span>' : '';
+    const fcTag   = (FORECAST_DATA  && h  >  0) ? ' <span class="live-dot">●</span>' : '';
+
+    let desc;
+    if (h === 0) {
+      // Nowcast — derived from live /api/latest
+      desc = `RoCoF &minus;${BASE.freq.rocof[0].toFixed(2)} Hz/s &middot; Nadir ${BASE.freq.nadir[0].toFixed(2)} Hz${liveTag}`;
+    } else if (FORECAST_DATA && FORECAST_DATA.horizons[h - 1]) {
+      // EKF forward-propagated forecast (deterministic, no contingency assumed)
+      const fc    = FORECAST_DATA.horizons[h - 1];
+      const li    = (1 - fc.mean_vsi).toFixed(2);
+      const mFreq = fc.mean_freq.toFixed(3);
+      const freqUncert = fc.freq_std ? ` ±${fc.freq_std[0].toFixed(3)}` : '';
+      if (h === 1) {  // 30 s
+        desc = `Freq ${mFreq}${freqUncert} Hz &middot; RoCoF ${fc.max_rocof.toFixed(3)} Hz/s &middot; L-Index ${li}${fcTag}`;
+      } else if (h === 2) {  // 2 min
+        desc = `L-Index ${li} &middot; Min freq ${fc.min_freq.toFixed(3)} Hz &middot; H=${fc.H_system.toFixed(2)} s${fcTag}`;
+      } else {  // 5 min
+        desc = `Freq ${mFreq} Hz &middot; L-Index ${li} &middot; H=${fc.H_system.toFixed(2)} s &middot; D=${fc.D_system.toFixed(2)}${fcTag}`;
+      }
+    } else {
+      // Fallback static descriptions (shown before first forecast arrives)
+      const staticDescs = [
+        '',
+        `Voltage L-Index ${BASE.volt.li[1].toFixed(2)} &middot; All buses in range`,
+        `L-Index trending ↑ ${BASE.volt.li[2].toFixed(2)} &middot; Bus 5 watch`,
+        `SCR ${BASE.ibr.scr[3].toFixed(1)} &middot; PLL margin ${BASE.ibr.pll[3].toFixed(2)}`,
+      ];
+      desc = staticDescs[h];
+    }
+    return `<div class="horizon-tile"><span class="h-label">${label}</span><span class="chip ${cls}">${worst}</span><span class="h-desc">${desc}</span></div>`;
   }).join('');
 }
 
@@ -1865,33 +1896,43 @@ function updateGridUtil(pct) {
    APPLY LIVE API DATA → MUTATE BASE + BUS/LINE DATA → REDRAW
 ============================================================ */
 let liveConnected = false;
+let FORECAST_DATA = null;   // latest /api/forecast response (populated by applyForecastData)
 
 function applyLiveData(d) {
-  // Frequency (1-sec = live; 30s/2min/5min = trended projection)
+  // Nowcast (h=0): update BASE[0] directly from live API measurements
   const maxRoCoF = Math.max(...d.rocof_bus.map(r => Math.abs(r)));
   const minFreq  = Math.min(...d.freq_bus);
-  const tMult    = [1.0, 1.17, 1.58, 1.92];
-  [0,1,2,3].forEach(h => {
-    BASE.freq.rocof[h] = maxRoCoF * tMult[h];
-    BASE.freq.nadir[h] = Math.max(48.5, minFreq - maxRoCoF * tMult[h] * 0.25);
-    BASE.freq.fm[h]    = Math.max(0, BASE.freq.nadir[h] - 48.8);
-  });
+  BASE.freq.rocof[0] = maxRoCoF;
+  BASE.freq.nadir[0] = Math.max(48.5, minFreq - maxRoCoF * 0.25);
+  BASE.freq.fm[0]    = Math.max(0, BASE.freq.nadir[0] - 48.8);
 
-  // Voltage (derive L-index from VSI: L = 1 − VSI)
-  const liArr  = d.v_stab_index_bus.map(vsi => 1 - vsi);
-  const avgLI  = liArr.reduce((a, b) => a + b, 0) / liArr.length;
-  const minV   = d.buses ? Math.min(...d.buses.map(b => b.voltage)) : 0.990;
-  const liGrow = [1.0, 1.04, 1.11, 1.19];
-  [0,1,2,3].forEach(h => {
-    BASE.volt.li[h]   = avgLI * liGrow[h];
-    BASE.volt.vmin[h] = Math.max(0.90, minV - h * 0.003);
-    BASE.volt.kj[h]   = Math.round(84 * (1 + avgLI * 0.6) * (1 + h * 0.12));
-  });
-
-  // Transient (CCT scales with system inertia H)
+  const liArr = d.v_stab_index_bus.map(vsi => 1 - vsi);
+  const avgLI = liArr.reduce((a, b) => a + b, 0) / liArr.length;
+  const minV  = d.buses ? Math.min(...d.buses.map(b => b.voltage)) : 0.990;
+  BASE.volt.li[0]   = avgLI;
+  BASE.volt.vmin[0] = minV;
+  BASE.volt.kj[0]   = Math.round(84 * (1 + avgLI * 0.6));
   if (d.H_system) {
-    const hF = d.H_system / 4.5;
-    [218, 204, 183, 161].forEach((base, h) => { BASE.trans.cct[h] = Math.round(base * hF); });
+    BASE.trans.cct[0] = Math.round(218 * (d.H_system / 4.5));
+  }
+
+  // Horizons 1–3 (30 s / 2 min / 5 min):
+  // Use deterministic EKF forward-propagation when available (FORECAST_DATA set by
+  // startForecastPolling); fall back to simple trend projection until first forecast arrives.
+  if (!FORECAST_DATA) {
+    const tMult  = [1.0, 1.17, 1.58, 1.92];
+    const liGrow = [1.0, 1.04, 1.11, 1.19];
+    [1,2,3].forEach(h => {
+      BASE.freq.rocof[h] = maxRoCoF * tMult[h];
+      BASE.freq.nadir[h] = Math.max(48.5, minFreq - maxRoCoF * tMult[h] * 0.25);
+      BASE.freq.fm[h]    = Math.max(0, BASE.freq.nadir[h] - 48.8);
+      BASE.volt.li[h]    = avgLI * liGrow[h];
+      BASE.volt.vmin[h]  = Math.max(0.90, minV - h * 0.003);
+      BASE.volt.kj[h]    = Math.round(84 * (1 + avgLI * 0.6) * (1 + h * 0.12));
+      if (d.H_system) {
+        BASE.trans.cct[h] = Math.round([218, 204, 183, 161][h] * (d.H_system / 4.5));
+      }
+    });
   }
 
   // Per-bus live voltages & L-indices
@@ -1930,6 +1971,40 @@ function applyLiveData(d) {
 }
 
 /* ============================================================
+   APPLY FORECAST DATA → MUTATE BASE[1,2,3] FROM /api/forecast
+   Called every second by startForecastPolling().
+   Each HorizonForecast (30s, 120s, 300s) contains EKF forward-
+   propagated state: mean_freq, min_freq, max_rocof, mean_vsi,
+   H_system, D_system, freq_std, vsi_std.
+============================================================ */
+function applyForecastData(f) {
+  f.horizons.forEach((hfc, idx) => {
+    const b   = idx + 1;           // BASE index: 1=30s, 2=2min, 3=5min
+    const li  = 1 - hfc.mean_vsi; // L-Index proxy from EKF VSI estimate
+    const hF  = hfc.H_system / 4.5;
+
+    // Frequency
+    BASE.freq.rocof[b] = hfc.max_rocof;
+    BASE.freq.nadir[b] = hfc.min_freq;
+    BASE.freq.fm[b]    = Math.max(0, hfc.min_freq - 48.8);
+
+    // Voltage stability
+    BASE.volt.li[b]   = li;
+    BASE.volt.vmin[b] = Math.max(0.90, BASE.volt.vmin[0] - (li - BASE.volt.li[0]) * 0.05);
+    BASE.volt.kj[b]   = Math.round(84 * (1 + li * 0.6) * (1 + idx * 0.12));
+
+    // Transient: CCT scales with predicted inertia H at that horizon
+    BASE.trans.cct[b]  = Math.round(BASE.trans.cct[0] * hF * Math.pow(0.93, idx + 1));
+    BASE.trans.mrad[b] = Math.min(90, BASE.trans.mrad[0] * (1 + (idx + 1) * 0.12));
+    BASE.trans.tsi[b]  = Math.max(0.0, BASE.trans.tsi[0] - (idx + 1) * 0.07);
+  });
+
+  FORECAST_DATA = f;
+  buildMatrix();
+  buildHorizonTiles();
+}
+
+/* ============================================================
    LIVE DATA — EventSource (SSE) with polling fallback
 ============================================================ */
 function startLiveUpdates() {
@@ -1964,6 +2039,31 @@ function startLiveUpdates() {
   }
 
   connectSSE();
+  startForecastPolling(backendUrl);
+}
+
+/* ============================================================
+   FORECAST POLLING — calls /api/forecast every second
+   Populates FORECAST_DATA → triggers applyForecastData() which
+   updates BASE[1,2,3] with EKF deterministic forward-propagation
+   results and redraws the stability matrix and horizon tiles.
+============================================================ */
+function startForecastPolling(backendUrl) {
+  const poll = async () => {
+    try {
+      const r = await fetch(backendUrl + '/api/forecast');
+      if (r.ok) {
+        const f = await r.json();
+        if (f && Array.isArray(f.horizons) && f.horizons.length === 3) {
+          applyForecastData(f);
+        }
+      }
+    } catch(e) {
+      // Silent failure — trend-based fallback remains active until backend responds
+    }
+    setTimeout(poll, 1000);
+  };
+  poll();
 }
 
 /* ============================================================
@@ -1979,6 +2079,9 @@ setInterval(() => {
   wallClock = new Date();
   const ft = document.getElementById('footer-ts');
   if (ft) ft.textContent = 'Page time: ' + wallClock.toLocaleTimeString();
+  // Redraw every second so tiles always reflect latest BASE / FORECAST_DATA values
+  buildMatrix();
+  buildHorizonTiles();
 }, 1000);
 
 /* ============================================================
