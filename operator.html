@@ -1078,7 +1078,7 @@
                 <th>T_settle (s)</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="body-modes">
               <tr class="row-warn">
                 <td><strong>Mode 1</strong></td>
                 <td>0.25</td>
@@ -1122,7 +1122,7 @@
                 <th>Risk Horizon</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="body-osc-el">
               <tr class="row-warn">
                 <td><strong>G2</strong></td>
                 <td>SG — Bus 2</td>
@@ -1344,7 +1344,16 @@ const GEN_DATA = [
   { id:'G2',    type:'SG',            typeFull:'Synchronous Generator', h:3.33, damp:9.4,  oscRole:'Osc. source (0.25 Hz)', scr:'N/A', pll:'N/A', risk:'MEDIUM', action:'Verify PSS is active and tuned. G2 is dominant source of inter-area mode.' },
   { id:'G3',    type:'SG',            typeFull:'Synchronous Generator', h:2.35, damp:7.8,  oscRole:'Osc. source (0.25 Hz)', scr:'N/A', pll:'N/A', risk:'MEDIUM', action:'Check governor droop setting. Co-source of oscillation with G2.' },
   { id:'IBR-1', type:'Grid-Forming',  typeFull:'Grid-Forming IBR (VSM)', h:4.00, damp:12.1, oscRole:'Damping support',  scr:3.4,   pll:'N/A', risk:'LOW',    action:'Grid-forming IBR — confirm virtual inertia emulation is enabled.' },
-  { id:'IBR-2', type:'Grid-Following', typeFull:'Grid-Following IBR (PLL)', h:'0 (GFL)', damp:'N/A', oscRole:'Neutral', scr:3.1, pll:0.41, risk:'MEDIUM', action:'PLL stability margin 0.41 → trending to 0.31 in 5 min. Monitor. Consider current limiter active.' },
+  { id:'IBR-2', type:'Grid-Following', typeFull:'Grid-Following IBR (PLL)', h:'0 (GFL)', damp:'N/A', oscRole:'Neutral', scr:3.1, pll:0.52, risk:'LOW',  action:'PLL stability margin nominal. Monitor trend in 30 s / 2 min horizons.' },
+];
+
+/* Oscillation participation data (IEEE 9-bus, inter-area mode 1) */
+const OSC_ELEMENTS = [
+  { name:'G2',       type:'SG — Bus 2',     part:0.82, role:'Source',  horizon:'Current' },
+  { name:'G3',       type:'SG — Bus 3',     part:0.74, role:'Source',  horizon:'Current' },
+  { name:'Bus 7',    type:'Load Bus',        part:0.51, role:'Sink',    horizon:'30 sec'  },
+  { name:'IBR-2',    type:'GFL — Bus 9',    part:0.38, role:'Neutral', horizon:'2 min'   },
+  { name:'Line 5–7', type:'Transmission',   part:0.29, role:'Neutral', horizon:'5 min'   },
 ];
 
 /* ============================================================
@@ -1358,6 +1367,24 @@ function riskChip(level) {
 /* ============================================================
    POPULATE SPATIAL TABLES
 ============================================================ */
+function genRiskFromLive(g) {
+  // Dynamic generator risk based on mode 1 damping (G2/G3) or PLL margin (IBR-2)
+  const z0 = BASE.osc.zeta[0];
+  if (g.id === 'G2' || g.id === 'G3') {
+    if (z0 < CONFIG.DAMPING_CRIT * 100) return 'CRITICAL';
+    if (z0 < CONFIG.DAMPING_WARN * 100) return 'HIGH';
+    if (z0 < 7.0) return 'MEDIUM';
+    return 'LOW';
+  }
+  if (g.id === 'IBR-2') {
+    const pll0 = BASE.ibr.pll[0];
+    if (pll0 < CONFIG.PLL_MARGIN_WARN) return 'HIGH';
+    if (pll0 < 0.40) return 'MEDIUM';
+    return 'LOW';
+  }
+  return g.risk; // G1, IBR-1 static (always LOW)
+}
+
 function busRiskFromLive(b) {
   // Compute risk dynamically from live voltage, L-Index and freq support need
   if (b.li >= CONFIG.L_INDEX_CRIT || b.v <= CONFIG.V_MIN_CRIT) return 'CRITICAL';
@@ -1426,7 +1453,8 @@ function buildGenTable() {
   const tbody = document.getElementById('body-generators');
   tbody.innerHTML = '';
   GEN_DATA.forEach(g => {
-    const rowClass = g.risk === 'HIGH' ? 'row-high' : (g.risk === 'MEDIUM' ? 'row-warn' : '');
+    const ri = genRiskFromLive(g);
+    const rowClass = ri === 'HIGH' || ri === 'CRITICAL' ? 'row-high' : (ri === 'MEDIUM' ? 'row-warn' : '');
     const pllDisplay = g.pll === 'N/A' ? '<span style="color:var(--text-dim)">N/A (SG)</span>'
       : `<span style="color:${g.pll < CONFIG.PLL_MARGIN_WARN ? 'var(--amber)' : 'var(--text-muted)'};font-family:monospace">${g.pll}</span>`;
     const scrDisplay = g.scr === 'N/A' ? '<span style="color:var(--text-dim)">N/A (SG)</span>'
@@ -1440,10 +1468,82 @@ function buildGenTable() {
         <td style="font-size:12px;color:var(--text-muted)">${g.oscRole}</td>
         <td>${scrDisplay}</td>
         <td>${pllDisplay}</td>
-        <td>${riskChip(g.risk)}</td>
+        <td>${riskChip(ri)}</td>
         <td style="color:var(--text-muted);font-size:12px;max-width:200px">${g.action}</td>
       </tr>`;
   });
+}
+
+/* ============================================================
+   OSCILLATION MONITORING — dynamic rendering
+============================================================ */
+function buildOscModes() {
+  const tbody = document.getElementById('body-modes');
+  if (!tbody) return;
+  const z0  = BASE.osc.zeta[0];
+  const ts0 = BASE.osc.ts[0].toFixed(1);
+  function zetaHtml(z) {
+    const c = z < CONFIG.DAMPING_CRIT * 100 ? 'var(--red)'
+            : z < CONFIG.DAMPING_WARN * 100 ? 'var(--amber)'
+            : 'var(--green)';
+    return `<span style="color:${c};font-weight:600">${z.toFixed(1)}%</span>`;
+  }
+  function statusHtml(z) {
+    return z < CONFIG.DAMPING_WARN * 100
+      ? `<span class="mode-status-warn">⚠ WATCH</span>`
+      : `<span class="mode-status-ok">✓ STABLE</span>`;
+  }
+  const rowClass0 = z0 < CONFIG.DAMPING_WARN * 100 ? ' class="row-warn"' : '';
+  tbody.innerHTML = `
+    <tr${rowClass0}>
+      <td><strong>Mode 1</strong></td>
+      <td>${BASE.osc.fosc[0].toFixed(2)}</td>
+      <td>${zetaHtml(z0)}</td>
+      <td><span class="chip chip-purple">Inter-area</span></td>
+      <td>${statusHtml(z0)}</td>
+      <td>${ts0}</td>
+    </tr>
+    <tr>
+      <td><strong>Mode 2</strong></td>
+      <td>1.12</td>
+      <td>${zetaHtml(8.6)}</td>
+      <td><span class="chip chip-dim">Local</span></td>
+      <td>${statusHtml(8.6)}</td>
+      <td>14.7</td>
+    </tr>
+    <tr>
+      <td><strong>Mode 3</strong></td>
+      <td>1.83</td>
+      <td>${zetaHtml(11.4)}</td>
+      <td><span class="chip chip-dim">Local</span></td>
+      <td>${statusHtml(11.4)}</td>
+      <td>8.9</td>
+    </tr>`;
+}
+
+function buildOscElements() {
+  const tbody = document.getElementById('body-osc-el');
+  if (!tbody) return;
+  const z0 = BASE.osc.zeta[0];
+  function roleHtml(role) {
+    if (role === 'Neutral') return `<span style="color:var(--text-muted)">Neutral</span>`;
+    // Source/Sink colour driven by Mode 1 damping — neutral when healthy
+    const col = z0 < CONFIG.DAMPING_CRIT * 100 ? 'var(--red)'
+              : z0 < CONFIG.DAMPING_WARN * 100  ? 'var(--amber)'
+              : 'var(--text-muted)';
+    return `<span style="color:${col};font-weight:600">${role}</span>`;
+  }
+  tbody.innerHTML = OSC_ELEMENTS.map(el => {
+    const isWarn = (el.role === 'Source' || el.role === 'Sink')
+                && z0 < CONFIG.DAMPING_WARN * 100;
+    return `<tr${isWarn ? ' class="row-warn"' : ''}>
+      <td><strong>${el.name}</strong></td>
+      <td>${el.type}</td>
+      <td>${el.part.toFixed(2)}</td>
+      <td>${roleHtml(el.role)}</td>
+      <td>${el.horizon}</td>
+    </tr>`;
+  }).join('');
 }
 
 /* ============================================================
@@ -2089,6 +2189,9 @@ function applyLiveData(d) {
   buildHorizonTiles();
   buildBusTable();
   buildLineTable();
+  buildGenTable();
+  buildOscModes();
+  buildOscElements();
   buildActionsPanel();
 
   syncSeconds = 0;
@@ -2129,6 +2232,9 @@ function applyForecastData(f) {
   FORECAST_DATA = f;
   buildMatrix();
   buildHorizonTiles();
+  buildGenTable();
+  buildOscModes();
+  buildOscElements();
   buildActionsPanel();
 }
 
@@ -2220,6 +2326,8 @@ setInterval(() => {
   buildBusTable();
   buildLineTable();
   buildGenTable();
+  buildOscModes();
+  buildOscElements();
   buildHorizonTiles();  // render horizon tiles
   buildActionsPanel();  // render recommended actions
   startLiveUpdates();   // connect to GridSense-AI backend stream
