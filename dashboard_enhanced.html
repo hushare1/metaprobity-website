@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GridSense-AI Pro Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: rgba(30, 41, 59, 0.95);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-primary: #667eea;
+            --accent-secondary: #764ba2;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: #334155;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header Styles */
+        .header {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120"><path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" fill="rgba(255,255,255,0.1)"></path></svg>') no-repeat bottom;
+            background-size: cover;
+            opacity: 0.3;
+        }
+        
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header h1 {
+            color: white;
+            font-size: 2.8em;
+            margin-bottom: 10px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+        
+        .header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .health-score {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .health-score-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+            font-weight: bold;
+            background: conic-gradient(var(--success) 0deg, var(--success) calc(var(--score, 100) * 3.6deg), #334155 calc(var(--score, 100) * 3.6deg), #334155 360deg);
+            position: relative;
+        }
+        
+        .health-score-inner {
+            width: 50px;
+            height: 50px;
+            background: var(--bg-card);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+        }
+        
+        .health-score-text {
+            text-align: left;
+        }
+        
+        .health-score-label {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-bottom: 3px;
+        }
+        
+        .health-score-status {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .status-badges {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .badge-success {
+            background: rgba(16, 185, 129, 0.9);
+            color: white;
+        }
+        
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.9);
+            color: white;
+            animation: pulse-badge 2s infinite;
+        }
+        
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            animation: pulse-badge 1s infinite;
+        }
+        
+        @keyframes pulse-badge {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.02); }
+        }
+        
+        .theme-toggle {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: all 0.3s ease;
+        }
+        
+        .theme-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .timestamp {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.95em;
+            margin-top: 10px;
+        }
+        
+        /* Insights Panel */
+        .insights-panel {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--accent-primary);
+        }
+        
+        .insights-panel h3 {
+            color: var(--accent-primary);
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        
+        .insight-item {
+            background: var(--bg-primary);
+            padding: 12px 16px;
+            border-radius: 8px;
+            border-left: 3px solid var(--accent-secondary);
+            font-size: 0.95em;
+        }
+        
+        .insight-item.placeholder {
+            opacity: 0.2;
+            border-left-color: transparent;
+            min-height: 44px;
+        }
+        
+        .insight-icon {
+            font-size: 1.2em;
+            margin-right: 8px;
+        }
+        
+        /* Main Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Metric Cards */
+        .metric-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+        
+        .metric-card h3 {
+            color: var(--accent-primary);
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .metrics-compact {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .metric-compact {
+            text-align: center;
+            padding: 15px;
+            background: var(--bg-primary);
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .metric-compact:hover {
+            background: var(--accent-primary);
+            color: white;
+            transform: scale(1.05);
+        }
+        
+        .metric-label {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .metric-compact:hover .metric-label {
+            color: rgba(255,255,255,0.9);
+        }
+        
+        .metric-value-large {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 5px 0;
+            line-height: 1;
+        }
+        
+        .metric-compact:hover .metric-value-large {
+            color: white;
+        }
+        
+        .metric-unit {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+        }
+        
+        .metric-compact:hover .metric-unit {
+            color: rgba(255,255,255,0.8);
+        }
+        
+        .metric-trend {
+            font-size: 0.85em;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        
+        .trend-up { color: var(--success); }
+        .trend-down { color: var(--danger); }
+        
+        /* Network Topology */
+        .network-container {
+            position: relative;
+            height: 400px;
+            background: var(--bg-primary);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .network-svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .bus-node {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .bus-node:hover {
+            filter: brightness(1.2);
+        }
+        
+        .bus-node circle {
+            stroke: var(--accent-primary);
+            stroke-width: 3;
+        }
+        
+        .line-connection {
+            stroke: var(--text-secondary);
+            stroke-width: 2;
+            opacity: 0.6;
+            transition: all 0.3s ease;
+        }
+        
+        .line-connection:hover {
+            stroke-width: 4;
+            opacity: 1;
+        }
+        
+        .generator-icon {
+            fill: var(--accent-primary);
+            animation: pulse-gen 2s infinite;
+        }
+        
+        @keyframes pulse-gen {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+        
+        /* Charts */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 15px;
+        }
+        
+        /* Bus Data Table */
+        .bus-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 15px;
+        }
+        
+        .bus-table thead {
+            background: var(--accent-primary);
+            color: white;
+        }
+        
+        .bus-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        
+        .bus-table th:first-child {
+            border-top-left-radius: 8px;
+        }
+        
+        .bus-table th:last-child {
+            border-top-right-radius: 8px;
+        }
+        
+        .bus-table tbody tr {
+            background: var(--bg-primary);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .bus-table tbody tr:hover {
+            background: var(--accent-primary);
+            color: white;
+            transform: scale(1.01);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .bus-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9em;
+        }
+        
+        .bus-table tbody tr:last-child td:first-child {
+            border-bottom-left-radius: 8px;
+        }
+        
+        .bus-table tbody tr:last-child td:last-child {
+            border-bottom-right-radius: 8px;
+        }
+        
+        .sparkline {
+            display: inline-block;
+            width: 60px;
+            height: 20px;
+            vertical-align: middle;
+        }
+        
+        .stability-indicator {
+            display: inline-block;
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .stability-fill {
+            height: 100%;
+            transition: all 0.3s ease;
+            border-radius: 3px;
+        }
+        
+        .stability-good { background: var(--success); }
+        .stability-warning { background: var(--warning); }
+        .stability-danger { background: var(--danger); }
+        
+        /* Loading & Error States */
+        .loading {
+            text-align: center;
+            padding: 60px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            border: 4px solid var(--border);
+            border-top: 4px solid var(--accent-primary);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 2px solid var(--danger);
+            color: var(--danger);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 2px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+        
+        /* Tooltips */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            background-color: rgba(0,0,0,0.9);
+            color: white;
+            text-align: center;
+            padding: 8px 12px;
+            border-radius: 6px;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            font-size: 0.85em;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        /* Line styles for topology arrows */
+        .line-connection {
+            stroke: #9ca3af;
+            stroke-width: 2;
+            stroke-linecap: round;
+            opacity: 0.95;
+        }
+
+        .line-center-arrow {
+            pointer-events: none;
+            transform-origin: center;
+            /* ensure it sits above other svg shapes visually */
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
+            .metrics-compact {
+                grid-template-columns: 1fr;
+            }
+            
+            .insights-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .health-score {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header fade-in">
+            <div class="header-content">
+                <h1>
+                    <span>⚡</span>
+                    GridSense-AI Pro
+                </h1>
+                <p>Real-Time Power Grid Monitoring & Predictive Analytics</p>
+                
+                <div class="header-controls">
+                    <div class="health-score">
+                        <div class="health-score-circle" id="health-circle" style="--score: 100">
+                            <div class="health-score-inner" id="health-value">100</div>
+                        </div>
+                        <div class="health-score-text">
+                            <div class="health-score-label">Grid Health Score</div>
+                            <div class="health-score-status" id="health-status">Excellent</div>
+                        </div>
+                    </div>
+                    
+                    <div class="status-badges">
+                        <div class="badge badge-success" id="status-badge">
+                            <span>✓</span>
+                            <span>System Normal</span>
+                        </div>
+                    </div>
+                    
+                    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark Mode">
+                        <span id="theme-icon">🌙</span>
+                    </button>
+                </div>
+                
+                <div class="timestamp" id="timestamp">Connecting...</div>
+            </div>
+        </div>
+        
+        <!-- Loading State -->
+        <div id="loading" class="loading fade-in">
+            <div class="spinner"></div>
+            <p>Connecting to GridSense-AI API...</p>
+        </div>
+        
+        <!-- Error Container -->
+        <div id="error-container"></div>
+        
+        <!-- Main Dashboard -->
+        <div id="dashboard" style="display: none;">
+            <!-- Insights Panel -->
+            <div class="insights-panel fade-in">
+                <h3>
+                    <span>🔍</span>
+                    Key Insights & Alerts
+                </h3>
+                <div class="insights-grid" id="insights-grid">
+                    <div class="insight-item">
+                        <span class="insight-icon">📊</span>
+                        <span>System monitoring active</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Grid -->
+            <div class="main-grid">
+                <!-- Left Column: Charts -->
+                <div>
+                    <!-- Frequency Deviation Chart -->
+                    <div class="metric-card fade-in">
+                        <h3>
+                            <span>📈</span>
+                            Frequency Deviation from 50 Hz (Last 60s)
+                        </h3>
+                        <div class="chart-container">
+                            <canvas id="frequency-deviation-chart"></canvas>
+                        </div>
+                        <div class="controls" style="justify-content: space-between; align-items: center;">
+                            <div style="display:flex; gap:10px;">
+                                <button class="btn btn-secondary" onclick="resetCharts()">
+                                    <span>🔄</span>
+                                    Reset
+                                </button>
+                                <button class="btn btn-secondary" id="pause-btn" onclick="togglePause()">
+                                    <span>⏸️</span>
+                                    Pause
+                                </button>
+                            </div>
+                            <div style="display:flex; gap:14px; align-items:center; font-size:0.82em; color:var(--text-muted);">
+                                <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block;"></span>Normal (&lt;20 mHz)</span>
+                                <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>Warning (20–50 mHz)</span>
+                                <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;"></span>Critical (&gt;50 mHz)</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ROCOF Chart -->
+                    <div class="metric-card fade-in" style="margin-top: 25px;">
+                        <h3>
+                            <span>⚡</span>
+                            Rate of Change of Frequency (ROCOF)
+                        </h3>
+                        <div class="chart-container">
+                            <canvas id="rocof-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Inertia & Damping Trend -->
+                    <div class="metric-card fade-in" style="margin-top: 25px;">
+                        <h3>
+                            <span>⚙️</span>
+                            System Dynamics (H & D)
+                        </h3>
+                        <div class="chart-container">
+                            <canvas id="dynamics-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Bus Data Table -->
+                    <div class="metric-card fade-in" style="margin-top: 25px;">
+                        <h3>
+                            <span>🔌</span>
+                            Bus-Level Monitoring
+                        </h3>
+                        <table class="bus-table">
+                            <thead>
+                                <tr>
+                                    <th>Bus</th>
+                                    <th>Frequency (Hz)</th>
+                                    <th>ROCOF (Hz/s)</th>
+                                    <th>Trend</th>
+                                    <th>Bus Health</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bus-table-body">
+                                <tr><td colspan="5" style="text-align: center;">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Right Column: Metrics & Network -->
+                <div>
+                    <!-- System Metrics Compact -->
+                    <div class="metric-card fade-in">
+                        <h3>
+                            <span>📊</span>
+                            System Metrics
+                        </h3>
+                        <div class="metrics-compact">
+                            <div class="metric-compact tooltip">
+                                <div class="metric-label">Inertia (H)</div>
+                                <div class="metric-value-large" id="h-value">--</div>
+                                <div class="metric-unit">seconds</div>
+                                <div class="metric-trend" id="h-trend"></div>
+                                <span class="tooltiptext">System inertia constant - measures grid's resistance to frequency changes</span>
+                            </div>
+                            
+                            <div class="metric-compact tooltip">
+                                <div class="metric-label">Damping (D)</div>
+                                <div class="metric-value-large" id="d-value">--</div>
+                                <div class="metric-unit">p.u./Hz</div>
+                                <div class="metric-trend" id="d-trend"></div>
+                                <span class="tooltiptext">System damping coefficient - natural frequency stabilization</span>
+                            </div>
+                            
+                            <div class="metric-compact tooltip">
+                                <div class="metric-label">Avg Frequency</div>
+                                <div class="metric-value-large" id="avg-freq">--</div>
+                                <div class="metric-unit">Hz</div>
+                                <div class="metric-trend" id="freq-trend"></div>
+                                <span class="tooltiptext">Average frequency across all buses</span>
+                            </div>
+                            
+                            <div class="metric-compact tooltip">
+                                <div class="metric-label">Max ROCOF</div>
+                                <div class="metric-value-large" id="max-rocof">--</div>
+                                <div class="metric-unit">Hz/s</div>
+                                <div class="metric-trend" id="rocof-trend"></div>
+                                <span class="tooltiptext">Maximum rate of change of frequency - indicates disturbances</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Network Topology -->
+                    <div class="metric-card fade-in" style="margin-top: 25px;">
+                        <h3>
+                            <span>🌐</span>
+                            Network Topology
+                        </h3>
+                        <div style="display: flex; justify-content: space-around; margin-bottom: 15px; font-size: 13px;">
+                            <div style="text-align: center;">
+                                <div style="color: var(--text-secondary); font-size: 11px;">Total Generation</div>
+                                <div id="total-gen" style="font-size: 18px; font-weight: 700; color: #10b981;">-- MW</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="color: var(--text-secondary); font-size: 11px;">Total Load</div>
+                                <div id="total-load" style="font-size: 18px; font-weight: 700; color: #ef4444;">-- MW</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="color: var(--text-secondary); font-size: 11px;">Balance</div>
+                                <div id="power-balance" style="font-size: 18px; font-weight: 700; color: var(--primary);">-- MW</div>
+                            </div>
+                        </div>
+                        <div class="network-container">
+                            <svg class="network-svg" id="network-svg" viewBox="0 0 400 450">
+                                <!-- No end/start markers — arrows rendered at line centers -->
+                                <!-- Lines will be drawn first (background) -->
+                                <g id="lines-layer"></g>
+                                <!-- Nodes will be drawn on top -->
+                                <g id="nodes-layer"></g>
+                            </svg>
+                        </div>
+                        <div style="display: flex; justify-content: center; gap: 15px; margin-top: 10px; font-size: 11px;">
+                            <div><span style="color: #10b981; font-size: 16px;">⚡</span> Generator</div>
+                            <div><span style="color: #ef4444; font-size: 16px;">🏭</span> Load</div>
+                            <div><span style="color: #8b5cf6; font-size: 16px;">⚙️</span> Transmission</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Configuration
+        // Use relative URL to avoid port/hostname issues
+        const API_URL = 'https://gridsense-ai.onrender.com/api/latest';
+        const UPDATE_INTERVAL = 1000; // 1 second
+        const MAX_DATA_POINTS = 60;
+        
+        // Color palette for bus visualization
+        const colors = ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#06b6d4'];
+        
+        // State
+        let updateInterval;
+        let isPaused = false;
+        let showIndividualBuses = false;
+        let frequencyDeviationChart, rocofChart, dynamicsChart;
+        let individualBusDeviationHistory = Array(9).fill(null).map(() => []);
+        let rocofHistory = [];
+        let inertiaHistory = [];
+        let dampingHistory = [];
+        let timeLabels = [];
+        let previousData = null;
+        let busSparklineData = Array(9).fill(null).map(() => []);
+        
+        // Initialize charts
+        function initCharts() {
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 500,
+                    easing: 'easeInOutQuart'
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+                            font: { size: 10 },
+                            boxWidth: 12,
+                            padding: 8
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--border') },
+                        ticks: { 
+                            color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary'),
+                            maxRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 8
+                        }
+                    },
+                    y: {
+                        grid: { color: getComputedStyle(document.documentElement).getPropertyValue('--border') },
+                        ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--text-secondary') }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            };
+            
+            // Frequency Deviation Chart (Top 3 Worst Offenders + Envelope)
+            const freqDevCtx = document.getElementById('frequency-deviation-chart').getContext('2d');
+            
+            // Create threshold zone plugin
+            const thresholdZones = {
+                id: 'thresholdZones',
+                beforeDraw: (chart) => {
+                    const ctx = chart.ctx;
+                    const chartArea = chart.chartArea;
+                    const yScale = chart.scales.y;
+                    
+                    // Critical zone (±50 mHz) - light red
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.08)';
+                    const y50Top = yScale.getPixelForValue(-50);
+                    const y50Bottom = yScale.getPixelForValue(50);
+                    ctx.fillRect(chartArea.left, y50Top, chartArea.right - chartArea.left, y50Bottom - y50Top);
+                    
+                    // Warning zone (±20 mHz) - light yellow
+                    ctx.fillStyle = 'rgba(245, 158, 11, 0.08)';
+                    const y20Top = yScale.getPixelForValue(-20);
+                    const y20Bottom = yScale.getPixelForValue(20);
+                    ctx.fillRect(chartArea.left, y20Top, chartArea.right - chartArea.left, y20Bottom - y20Top);
+                    
+                    // Normal zone (±10 mHz) - light green
+                    ctx.fillStyle = 'rgba(16, 185, 129, 0.08)';
+                    const y10Top = yScale.getPixelForValue(-10);
+                    const y10Bottom = yScale.getPixelForValue(10);
+                    ctx.fillRect(chartArea.left, y10Top, chartArea.right - chartArea.left, y10Bottom - y10Top);
+                }
+            };
+            
+            frequencyDeviationChart = new Chart(freqDevCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Bus 1', 'Bus 2', 'Bus 3'],
+                    datasets: [{
+                        label: 'Frequency Deviation',
+                        data: [0, 0, 0],
+                        backgroundColor: function(context) {
+                            const value = context.parsed.y;
+                            if (Math.abs(value) > 50) return 'rgba(239, 68, 68, 0.8)';
+                            if (Math.abs(value) > 20) return 'rgba(245, 158, 11, 0.8)';
+                            if (Math.abs(value) > 10) return 'rgba(16, 185, 129, 0.8)';
+                            return 'rgba(59, 130, 246, 0.8)';
+                        },
+                        borderColor: function(context) {
+                            const value = context.parsed.y;
+                            if (Math.abs(value) > 50) return '#ef4444';
+                            if (Math.abs(value) > 20) return '#f59e0b';
+                            if (Math.abs(value) > 10) return '#10b981';
+                            return '#3b82f6';
+                        },
+                        borderWidth: 2,
+                        barThickness: 80,
+                        maxBarThickness: 100
+                    }]
+                },
+                options: {
+                    ...chartOptions,
+                    indexAxis: 'x',
+                    plugins: {
+                        ...chartOptions.plugins,
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `Deviation: ${context.parsed.y.toFixed(1)} mHz`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { 
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+                                font: { size: 13, weight: 'bold' }
+                            }
+                        },
+                        y: {
+                            ...chartOptions.scales.y,
+                            title: { 
+                                display: true, 
+                                text: 'Frequency Deviation (mHz)', 
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
+                                font: { size: 11 }
+                            },
+                            min: -60,
+                            max: 60,
+                            grid: {
+                                color: function(context) {
+                                    if (context.tick.value === 0) {
+                                        return '#10b981'; // Green line at zero
+                                    }
+                                    if (context.tick.value === 50 || context.tick.value === -50) {
+                                        return 'rgba(239, 68, 68, 0.3)'; // Red lines at ±50
+                                    }
+                                    if (context.tick.value === 20 || context.tick.value === -20) {
+                                        return 'rgba(245, 158, 11, 0.3)'; // Yellow lines at ±20
+                                    }
+                                    return getComputedStyle(document.documentElement).getPropertyValue('--border');
+                                },
+                                lineWidth: function(context) {
+                                    return context.tick.value === 0 ? 2 : 1;
+                                }
+                            }
+                        }
+                    }
+                },
+                plugins: [thresholdZones]
+            });
+            
+            // ROCOF Chart (shows top 3 worst offenders)
+            const rocofCtx = document.getElementById('rocof-chart').getContext('2d');
+            rocofChart = new Chart(rocofCtx, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: []
+                },
+                options: {
+                    ...chartOptions,
+                    plugins: {
+                        ...chartOptions.plugins,
+                        legend: {
+                            ...chartOptions.plugins.legend,
+                            labels: {
+                                ...chartOptions.plugins.legend.labels,
+                                generateLabels: function(chart) {
+                                    const datasets = chart.data.datasets;
+                                    return datasets.map((dataset, i) => ({
+                                        text: dataset.label,
+                                        fillStyle: dataset.borderColor,
+                                        strokeStyle: dataset.borderColor,
+                                        lineWidth: 2,
+                                        hidden: false,
+                                        index: i
+                                    }));
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        ...chartOptions.scales,
+                        y: {
+                            ...chartOptions.scales.y,
+                            title: { 
+                                display: true, 
+                                text: 'ROCOF (Hz/s)', 
+                                color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary') 
+                            },
+                            grid: {
+                                ...chartOptions.scales.y.grid,
+                                color: function(context) {
+                                    if (context.tick.value === 0) {
+                                        return '#10b981';
+                                    }
+                                    return getComputedStyle(document.documentElement).getPropertyValue('--border');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Dynamics Chart
+            const dynCtx = document.getElementById('dynamics-chart').getContext('2d');
+            dynamicsChart = new Chart(dynCtx, {
+                type: 'line',
+                data: {
+                    labels: timeLabels,
+                    datasets: [
+                        {
+                            label: 'System Inertia (H)',
+                            data: inertiaHistory,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'System Damping (D)',
+                            data: dampingHistory,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    ...chartOptions,
+                    scales: {
+                        x: chartOptions.scales.x,
+                        y: {
+                            ...chartOptions.scales.y,
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Inertia (s)', color: '#667eea' }
+                        },
+                        y1: {
+                            ...chartOptions.scales.y,
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'Damping (p.u./Hz)', color: '#10b981' },
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize network topology
+        function initNetworkTopology() {
+            const svg = document.getElementById('network-svg');
+            const linesLayer = document.getElementById('lines-layer');
+            const nodesLayer = document.getElementById('nodes-layer');
+            
+            // Bus types: GEN, LOAD, TRANS
+            const busTypes = ['GEN', 'GEN', 'GEN', 'TRANS', 'LOAD', 'LOAD', 'TRANS', 'LOAD', 'TRANS'];
+            
+            // IEEE 9-bus topology layout
+            const busPositions = [
+                { x: 100, y: 100, type: 'GEN' },   // Bus 1 (Gen)
+                { x: 300, y: 100, type: 'GEN' },   // Bus 2 (Gen)
+                { x: 200, y: 50, type: 'GEN' },    // Bus 3 (Gen)
+                { x: 80, y: 200, type: 'TRANS' },  // Bus 4
+                { x: 200, y: 250, type: 'LOAD' },  // Bus 5
+                { x: 320, y: 200, type: 'LOAD' },  // Bus 6
+                { x: 100, y: 340, type: 'TRANS' }, // Bus 7
+                { x: 200, y: 380, type: 'LOAD' },  // Bus 8
+                { x: 300, y: 340, type: 'TRANS' }  // Bus 9
+            ];
+            
+            // Connections (IEEE 9-bus - 9 transmission lines)
+            // Matches backend line_flows: 1-4, 2-7, 3-9, 4-5, 4-6, 5-7, 6-9, 7-8, 8-9
+            const connections = [
+                [0, 3],  // Bus 1-4
+                [1, 6],  // Bus 2-7
+                [2, 8],  // Bus 3-9
+                [3, 4],  // Bus 4-5
+                [3, 5],  // Bus 4-6
+                [4, 6],  // Bus 5-7
+                [5, 8],  // Bus 6-9
+                [6, 7],  // Bus 7-8
+                [7, 8]   // Bus 8-9
+            ];
+            
+            // Draw lines
+            connections.forEach(([from, to]) => {
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('class', 'line-connection');
+                line.setAttribute('id', `line-${from}-${to}`);
+                line.setAttribute('x1', busPositions[from].x);
+                line.setAttribute('y1', busPositions[from].y);
+                line.setAttribute('x2', busPositions[to].x);
+                line.setAttribute('y2', busPositions[to].y);
+                line.setAttribute('data-from', from);
+                line.setAttribute('data-to', to);
+                // Default: no arrow until we set direction from live data
+                line.setAttribute('marker-start', 'none');
+                line.setAttribute('marker-end', 'none');
+                linesLayer.appendChild(line);
+            });
+            
+            // Draw bus nodes
+            busPositions.forEach((pos, i) => {
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('class', 'bus-node');
+                g.setAttribute('data-bus', i);
+                g.setAttribute('transform', `translate(${pos.x}, ${pos.y})`);
+                
+                // Node circle
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                const nodeSize = pos.type === 'GEN' ? 16 : (pos.type === 'LOAD' ? 14 : 11);
+                circle.setAttribute('r', nodeSize);
+                const nodeColor = pos.type === 'GEN' ? '#10b981' : (pos.type === 'LOAD' ? '#ef4444' : '#8b5cf6');
+                circle.setAttribute('fill', nodeColor);
+                circle.setAttribute('id', `node-${i}`);
+                g.appendChild(circle);
+                
+                // Icon based on type (simple text emoji)
+                const icon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                icon.setAttribute('text-anchor', 'middle');
+                icon.setAttribute('font-size', '10');
+                icon.setAttribute('y', '4');
+                icon.setAttribute('fill', '#ffffff');
+                icon.textContent = pos.type === 'GEN' ? '⚡' : (pos.type === 'LOAD' ? '🏭' : '⚙');
+                g.appendChild(icon);
+                
+                // Bus label
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('y', '30');
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', getComputedStyle(document.documentElement).getPropertyValue('--text-primary'));
+                text.setAttribute('font-size', '11');
+                text.setAttribute('font-weight', 'bold');
+                text.textContent = `Bus ${i + 1}`;
+                g.appendChild(text);
+                
+                // Frequency label
+                const freqText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                freqText.setAttribute('y', '42');
+                freqText.setAttribute('text-anchor', 'middle');
+                freqText.setAttribute('fill', getComputedStyle(document.documentElement).getPropertyValue('--text-secondary'));
+                freqText.setAttribute('font-size', '9');
+                freqText.setAttribute('id', `freq-label-${i}`);
+                freqText.textContent = '50.00 Hz';
+                g.appendChild(freqText);
+                
+                // Voltage label
+                const voltText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                voltText.setAttribute('y', '52');
+                voltText.setAttribute('text-anchor', 'middle');
+                voltText.setAttribute('fill', getComputedStyle(document.documentElement).getPropertyValue('--text-secondary'));
+                voltText.setAttribute('font-size', '8');
+                voltText.setAttribute('id', `volt-label-${i}`);
+                voltText.textContent = '1.00 pu';
+                g.appendChild(voltText);
+                
+                // Power label
+                const powerText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                powerText.setAttribute('y', '62');
+                powerText.setAttribute('text-anchor', 'middle');
+                powerText.setAttribute('fill', getComputedStyle(document.documentElement).getPropertyValue('--text-secondary'));
+                powerText.setAttribute('font-size', '8');
+                powerText.setAttribute('font-weight', 'bold');
+                powerText.setAttribute('id', `power-label-${i}`);
+                powerText.textContent = '0 MW';
+                g.appendChild(powerText);
+                
+                nodesLayer.appendChild(g);
+            });
+
+            // Red-ink markers removed per user request.
+        }
+        
+        // Update network topology with live data
+        function updateNetworkTopology(data) {
+            const busTypes = ['GEN', 'GEN', 'GEN', 'TRANS', 'LOAD', 'LOAD', 'TRANS', 'LOAD', 'TRANS'];
+            
+            // Update total generation and load
+            if (data.total_generation_mw !== undefined) {
+                document.getElementById('total-gen').textContent = `${data.total_generation_mw.toFixed(1)} MW`;
+            }
+            if (data.total_load_mw !== undefined) {
+                document.getElementById('total-load').textContent = `${data.total_load_mw.toFixed(1)} MW`;
+                const balance = data.total_generation_mw - data.total_load_mw;
+                document.getElementById('power-balance').textContent = `${balance >= 0 ? '+' : ''}${balance.toFixed(1)} MW`;
+            }
+            
+            // Update line flows
+            if (data.lines && data.lines.length > 0) {
+                // Remove existing line flow labels and center arrows
+                document.querySelectorAll('.line-flow-label').forEach(el => el.remove());
+                document.querySelectorAll('.line-center-arrow').forEach(el => el.remove());
+                // Ensure no legacy start/end markers remain on lines
+                document.querySelectorAll('#lines-layer line').forEach(l => {
+                    l.removeAttribute('marker-start');
+                    l.removeAttribute('marker-end');
+                });
+                
+                const svg = document.getElementById('network-svg');
+                const linesLayer = document.getElementById('lines-layer');
+                
+                // Bus positions (same as in init function)
+                const busPositions = [
+                    { x: 100, y: 100 },   // Bus 1
+                    { x: 300, y: 100 },   // Bus 2
+                    { x: 200, y: 50 },    // Bus 3
+                    { x: 80, y: 200 },    // Bus 4
+                    { x: 200, y: 250 },   // Bus 5
+                    { x: 320, y: 200 },   // Bus 6
+                    { x: 100, y: 340 },   // Bus 7
+                    { x: 200, y: 380 },   // Bus 8
+                    { x: 300, y: 340 }    // Bus 9
+                ];
+                
+                data.lines.forEach(line => {
+                    const fromIdx = line.from_bus - 1;
+                    const toIdx = line.to_bus - 1;
+                    
+                    if (fromIdx >= 0 && toIdx >= 0 && fromIdx < busPositions.length && toIdx < busPositions.length) {
+                        const fromPos = busPositions[fromIdx];
+                        const toPos = busPositions[toIdx];
+                        
+                        // Calculate midpoint
+                        const midX = (fromPos.x + toPos.x) / 2;
+                        const midY = (fromPos.y + toPos.y) / 2;
+                        
+                        // Smart positioning: use perpendicular offset with manual adjustments for dense areas
+                        const dx = toPos.x - fromPos.x;
+                        const dy = toPos.y - fromPos.y;
+                        const lineLength = Math.sqrt(dx * dx + dy * dy);
+                        
+                        // Normalized perpendicular vector
+                        const perpX = -dy / lineLength;
+                        const perpY = dx / lineLength;
+                        
+                        // Line-specific positioning to avoid overlaps
+                        // Handle both normal and reversed line directions
+                        const lineKey = `${line.from_bus}-${line.to_bus}`;
+                        const reverseKey = `${line.to_bus}-${line.from_bus}`;
+                        let labelX, labelY;
+                        
+                        // Strategic positioning based on line location
+                        if (lineKey === '1-4' || reverseKey === '1-4') {
+                            // Bus 1->4: left side
+                            labelX = midX - 35;
+                            labelY = midY;
+                        } else if (lineKey === '2-7' || reverseKey === '2-7') {
+                            // Bus 2->7: at the red marked position near Bus 2
+                            labelX = busPositions[1].x + 35;
+                            labelY = busPositions[1].y + 35;
+                        } else if (lineKey === '3-9' || reverseKey === '3-9') {
+                            // Bus 3->9: below Bus 3
+                            labelX = busPositions[2].x;
+                            labelY = busPositions[2].y + 75;
+                        } else if (lineKey === '4-5' || reverseKey === '4-5') {
+                            // Bus 4->5: center of Bus 4 and Bus 5
+                            labelX = midX;
+                            labelY = midY;
+                        } else if (lineKey === '4-6' || reverseKey === '4-6') {
+                            // Bus 4->6: near Bus 4
+                            labelX = busPositions[3].x + 50;
+                            labelY = busPositions[3].y - 15;
+                        } else if (lineKey === '5-7' || reverseKey === '5-7') {
+                            // Bus 5->7: center of Bus 5 and Bus 7
+                            labelX = midX;
+                            labelY = midY;
+                        } else if (lineKey === '6-9' || reverseKey === '6-9') {
+                            // Bus 6->9: right side to avoid Bus 6 labels
+                            labelX = midX + 15;
+                            labelY = midY + 25;
+                        } else if (lineKey === '7-8' || reverseKey === '7-8') {
+                            // Bus 7->8: below line to avoid Bus 7/8 labels
+                            labelX = midX;
+                            labelY = midY + 20;
+                        } else if (lineKey === '8-9' || reverseKey === '8-9') {
+                            // Bus 8->9: center of Bus 8 and Bus 9
+                            labelX = midX;
+                            labelY = midY;
+                        } else {
+                            // Default: perpendicular offset
+                            labelX = midX + perpX * 15;
+                            labelY = midY + perpY * 15;
+                        }
+                        
+                        // Direction arrows removed per user request — no automatic center arrows drawn here.
+
+                        // Create background rectangle for better readability
+                        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                        rect.setAttribute('class', 'line-flow-label');
+                        rect.setAttribute('x', labelX - 18);
+                        rect.setAttribute('y', labelY - 9);
+                        rect.setAttribute('width', '36');
+                        rect.setAttribute('height', '16');
+                        rect.setAttribute('fill', 'rgba(0, 0, 0, 0.75)');
+                        rect.setAttribute('rx', '4');
+                        rect.setAttribute('stroke', '#f59e0b');
+                        rect.setAttribute('stroke-width', '1');
+                        
+                        linesLayer.appendChild(rect);
+                        
+                        // Create text element for power flow
+                        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                        text.setAttribute('class', 'line-flow-label');
+                        text.setAttribute('x', labelX);
+                        text.setAttribute('y', labelY + 4);
+                        text.setAttribute('text-anchor', 'middle');
+                        text.setAttribute('font-size', '10');
+                        text.setAttribute('font-weight', 'bold');
+                        text.setAttribute('fill', '#fbbf24');
+                        
+                        // Display power flow value
+                        text.textContent = `${Math.abs(line.p_mw).toFixed(0)}`;
+                        linesLayer.appendChild(text);
+                    }
+                });
+            }
+            
+            // Update individual bus data
+            if (data.buses) {
+                data.buses.forEach((bus, i) => {
+                    const node = document.getElementById(`node-${i}`);
+                    const freqLabel = document.getElementById(`freq-label-${i}`);
+                    const voltLabel = document.getElementById(`volt-label-${i}`);
+                    const powerLabel = document.getElementById(`power-label-${i}`);
+                    
+                    if (!node || !freqLabel || !voltLabel || !powerLabel) return;
+                    
+                    // Update labels
+                    freqLabel.textContent = `${bus.frequency.toFixed(2)} Hz`;
+                    voltLabel.textContent = `${bus.voltage.toFixed(3)} pu`;
+                    powerLabel.textContent = `${Math.abs(bus.power_mw).toFixed(0)} MW`;
+                    
+                    // Color based on bus type and health
+                    const deviation = Math.abs(bus.frequency - 50.0);
+                    let color;
+                    if (deviation < 0.05) {
+                        color = bus.bus_type === 'GEN' ? '#10b981' : (bus.bus_type === 'LOAD' ? '#ef4444' : '#8b5cf6');
+                    } else if (deviation < 0.1) {
+                        color = '#f59e0b'; // Yellow warning
+                    } else {
+                        color = '#dc2626'; // Red alert
+                    }
+                    
+                    node.setAttribute('fill', color);
+                });
+            } else {
+                // Fallback to old format
+                data.freq_bus.forEach((freq, i) => {
+                    const node = document.getElementById(`node-${i}`);
+                    const freqLabel = document.getElementById(`freq-label-${i}`);
+                    const voltLabel = document.getElementById(`volt-label-${i}`);
+                    
+                    if (!freqLabel || !node) return;
+                    
+                    freqLabel.textContent = `${freq.toFixed(2)} Hz`;
+                    if (voltLabel && data.v_stab_index_bus && data.v_stab_index_bus[i]) {
+                        const vsi = data.v_stab_index_bus[i];
+                        const estVoltage = 1.0 - 0.2 * (1.0 - vsi);
+                        voltLabel.textContent = `${estVoltage.toFixed(3)} pu`;
+                    }
+                    
+                    const deviation = Math.abs(freq - 50.0);
+                    let color;
+                    if (deviation < 0.05) {
+                        color = busTypes[i] === 'GEN' ? '#10b981' : (busTypes[i] === 'LOAD' ? '#ef4444' : '#8b5cf6');
+                    } else if (deviation < 0.1) {
+                        color = '#f59e0b';
+                    } else {
+                        color = '#dc2626';
+                    }
+                    
+                    node.setAttribute('fill', color);
+                });
+            }
+        }
+        
+        // Calculate grid health score
+        function calculateHealthScore(data) {
+            let score = 100;
+            
+            // Penalize for low inertia
+            if (data.H_system < 3.0) score -= 30;
+            else if (data.H_system < 4.0) score -= 15;
+            
+            // Penalize for frequency deviations
+            data.freq_bus.forEach(freq => {
+                const dev = Math.abs(freq - 50.0);
+                if (dev > 0.1) score -= 5;
+                else if (dev > 0.05) score -= 2;
+            });
+            
+            // Penalize for high ROCOF
+            data.rocof_bus.forEach(rocof => {
+                if (Math.abs(rocof) > 0.05) score -= 5;
+                else if (Math.abs(rocof) > 0.02) score -= 2;
+            });
+            
+            // Penalize for low stability indices
+            const avgStability = data.v_stab_index_bus.reduce((a, b) => a + b, 0) / data.v_stab_index_bus.length;
+            if (avgStability < 0.5) score -= 20;
+            else if (avgStability < 0.7) score -= 10;
+            
+            return Math.max(0, Math.min(100, score));
+        }
+        
+        // Generate insights
+        function generateInsights(data) {
+            const insights = [];
+            
+            // Check for events
+            const maxRocof = Math.max(...data.rocof_bus.map(Math.abs));
+            const maxRocofBus = data.rocof_bus.findIndex(r => Math.abs(r) === maxRocof) + 1;
+            
+            if (maxRocof > 0.02) {
+                insights.push({
+                    icon: '⚡',
+                    text: `High ROCOF detected at Bus ${maxRocofBus}: ${data.rocof_bus[maxRocofBus - 1].toFixed(5)} Hz/s`,
+                    type: 'warning'
+                });
+            }
+            
+            // Check inertia
+            if (data.H_system < 3.0) {
+                insights.push({
+                    icon: '⚠️',
+                    text: `Critical: Low system inertia (H=${data.H_system.toFixed(2)}s) - Grid vulnerable to disturbances`,
+                    type: 'danger'
+                });
+            } else if (data.H_system < 4.0) {
+                insights.push({
+                    icon: '⚠️',
+                    text: `Warning: Reduced system inertia (H=${data.H_system.toFixed(2)}s)`,
+                    type: 'warning'
+                });
+            }
+            
+            // Check frequency extremes
+            const minFreq = Math.min(...data.freq_bus);
+            const maxFreq = Math.max(...data.freq_bus);
+            const freqSpread = maxFreq - minFreq;
+            
+            if (freqSpread > 0.1) {
+                insights.push({
+                    icon: '📊',
+                    text: `Large frequency spread: ${freqSpread.toFixed(4)} Hz across buses`,
+                    type: 'warning'
+                });
+            }
+            
+            // Positive insights
+            if (insights.length === 0) {
+                insights.push({
+                    icon: '✅',
+                    text: 'All systems operating within normal parameters',
+                    type: 'success'
+                });
+                insights.push({
+                    icon: '📈',
+                    text: `Grid stability excellent: Avg stability index ${(data.v_stab_index_bus.reduce((a,b) => a+b, 0) / 9).toFixed(3)}`,
+                    type: 'success'
+                });
+            }
+            
+            // Fastest ROCOF
+            insights.push({
+                icon: '🔍',
+                text: `Fastest ROCOF: Bus ${maxRocofBus} (${data.rocof_bus[maxRocofBus - 1].toFixed(5)} Hz/s)`,
+                type: 'info'
+            });
+            
+            // Always ensure exactly 3 insights for consistent layout
+            while (insights.length < 3) {
+                insights.push({
+                    icon: '',
+                    text: '\u00A0', // Non-breaking space for blank placeholder
+                    type: 'placeholder'
+                });
+            }
+            
+            // Limit to exactly 3 insights
+            return insights.slice(0, 3);
+        }
+        
+        // Update insights panel
+        function updateInsights(data) {
+            const insights = generateInsights(data);
+            const grid = document.getElementById('insights-grid');
+            
+            grid.innerHTML = insights.map(insight => `
+                <div class="insight-item${insight.type === 'placeholder' ? ' placeholder' : ''}">
+                    <span class="insight-icon">${insight.icon}</span>
+                    <span>${insight.text}</span>
+                </div>
+            `).join('');
+        }
+        
+        // Format trend indicator
+        function getTrendIndicator(current, previous) {
+            if (!previous) return '';
+            const diff = current - previous;
+            if (Math.abs(diff) < 0.001) return '<span style="color: var(--text-secondary)">━</span>';
+            return diff > 0 
+                ? `<span class="trend-up">▲ ${Math.abs(diff).toFixed(3)}</span>`
+                : `<span class="trend-down">▼ ${Math.abs(diff).toFixed(3)}</span>`;
+        }
+        
+        // Draw mini sparkline
+        function drawSparkline(values, max = 5) {
+            if (values.length < 2) return '';
+            
+            const width = 60;
+            const height = 20;
+            const points = values.slice(-20); // Last 20 points
+            const min = Math.min(...points);
+            const range = Math.max(...points) - min || 1;
+            
+            const path = points.map((v, i) => {
+                const x = (i / (points.length - 1)) * width;
+                const y = height - ((v - min) / range) * height;
+                return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+            }).join(' ');
+            
+            return `<svg class="sparkline" viewBox="0 0 ${width} ${height}">
+                <path d="${path}" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            </svg>`;
+        }
+        
+        // Update dashboard
+        function updateDashboard(data) {
+            // Hide loading, show dashboard
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            document.getElementById('error-container').innerHTML = '';
+            
+            // Calculate health score
+            const healthScore = calculateHealthScore(data);
+            document.getElementById('health-value').textContent = healthScore;
+            document.getElementById('health-circle').style.setProperty('--score', healthScore);
+            
+            let healthStatus = 'Excellent';
+            if (healthScore < 60) healthStatus = 'Critical';
+            else if (healthScore < 75) healthStatus = 'Fair';
+            else if (healthScore < 90) healthStatus = 'Good';
+            document.getElementById('health-status').textContent = healthStatus;
+            
+            // Update status badge
+            const statusBadge = document.getElementById('status-badge');
+            if (data.alarm_flag) {
+                statusBadge.className = 'badge badge-danger';
+                statusBadge.innerHTML = `<span>🚨</span><span>${data.alarm_text}</span>`;
+            } else if (healthScore < 75) {
+                statusBadge.className = 'badge badge-warning';
+                statusBadge.innerHTML = `<span>⚠️</span><span>Degraded Performance</span>`;
+            } else {
+                statusBadge.className = 'badge badge-success';
+                statusBadge.innerHTML = `<span>✓</span><span>System Normal</span>`;
+            }
+            
+            // Update timestamp
+            const timestamp = new Date(data.timestamp);
+            document.getElementById('timestamp').textContent = 
+                `Last Update: ${timestamp.toLocaleString()} | Status: ${data.alarm_text}`;
+            
+            // Update metrics with trends
+            document.getElementById('h-value').textContent = data.H_system.toFixed(2);
+            document.getElementById('d-value').textContent = data.D_system.toFixed(2);
+            
+            if (previousData) {
+                document.getElementById('h-trend').innerHTML = getTrendIndicator(data.H_system, previousData.H_system);
+                document.getElementById('d-trend').innerHTML = getTrendIndicator(data.D_system, previousData.D_system);
+            }
+            
+            // Calculate and display average frequency
+            const avgFreq = data.freq_bus.reduce((a, b) => a + b, 0) / data.freq_bus.length;
+            document.getElementById('avg-freq').textContent = avgFreq.toFixed(4);
+            if (previousData) {
+                const prevAvg = previousData.freq_bus.reduce((a, b) => a + b, 0) / previousData.freq_bus.length;
+                document.getElementById('freq-trend').innerHTML = getTrendIndicator(avgFreq, prevAvg);
+            }
+            
+            // Max ROCOF
+            const maxRocof = Math.max(...data.rocof_bus.map(Math.abs));
+            document.getElementById('max-rocof').textContent = maxRocof.toFixed(4);
+            if (previousData) {
+                const prevMaxRocof = Math.max(...previousData.rocof_bus.map(Math.abs));
+                document.getElementById('rocof-trend').innerHTML = getTrendIndicator(maxRocof, prevMaxRocof);
+            }
+            
+            // Update bus table
+            const tbody = document.getElementById('bus-table-body');
+            tbody.innerHTML = data.freq_bus.map((freq, i) => {
+                // Store sparkline data
+                if (busSparklineData[i].length > 20) busSparklineData[i].shift();
+                busSparklineData[i].push(freq);
+                
+                const deviation = freq - 50.0;
+                const rocof = data.rocof_bus[i];
+                // Use default VSI of 0.9 if missing/invalid
+                let vStability = data.v_stab_index_bus[i];
+                if (!vStability || vStability < 0 || vStability > 1 || isNaN(vStability)) {
+                    vStability = 0.9; // Default to good stability if data unavailable
+                }
+                
+                // Calculate comprehensive bus health score (0-100)
+                // Uses exponential scoring for better differentiation and dynamic response
+                let busHealth = 100;
+                
+                // Frequency deviation factor (0-45 points) - Most critical for grid health
+                const freqDevMag = Math.abs(deviation);
+                if (freqDevMag > 0.5) {
+                    busHealth -= 45; // Major deviation (>500 mHz) - Emergency
+                } else if (freqDevMag > 0.2) {
+                    busHealth -= 30; // Beyond grid code - Critical
+                } else if (freqDevMag > 0.1) {
+                    busHealth -= 15; // Notable deviation - Warning
+                } else if (freqDevMag > 0.05) {
+                    busHealth -= 8; // Small deviation - Caution
+                } else if (freqDevMag > 0.02) {
+                    busHealth -= 3; // Minor deviation - Normal variation
+                } else if (freqDevMag > 0.01) {
+                    busHealth -= 1; // Tiny deviation - Excellent
+                }
+                // If < 0.01 Hz (10 mHz), no penalty - perfect operation
+                
+                // ROCOF factor (0-35 points) - Dynamic stability indicator
+                const rocofMag = Math.abs(rocof);
+                if (rocofMag > 1.0) {
+                    busHealth -= 35; // Severe event - System disturbance
+                } else if (rocofMag > 0.5) {
+                    busHealth -= 25; // Major event - Large disturbance
+                } else if (rocofMag > 0.1) {
+                    busHealth -= 15; // Significant event - Moderate disturbance
+                } else if (rocofMag > 0.05) {
+                    busHealth -= 8; // Minor event - Small disturbance
+                } else if (rocofMag > 0.02) {
+                    busHealth -= 4; // Fluctuation - Normal dynamics
+                } else if (rocofMag > 0.01) {
+                    busHealth -= 2; // Small fluctuation
+                }
+                // If < 0.01 Hz/s, no penalty - stable operation
+                
+                // Voltage stability factor (0-20 points) - Steady-state margin
+                // Less weight since VSI changes slowly in EKF
+                if (vStability < 0.3) {
+                    busHealth -= 20; // Critical voltage stability
+                } else if (vStability < 0.5) {
+                    busHealth -= 15; // Low stability margin
+                } else if (vStability < 0.7) {
+                    busHealth -= 8; // Moderate stability
+                } else if (vStability < 0.85) {
+                    busHealth -= 4; // Good stability
+                } else if (vStability < 0.95) {
+                    busHealth -= 1; // Very good stability
+                }
+                // If vStability >= 0.95, no penalty (excellent)
+                
+                // Clamp to 0-100
+                busHealth = Math.max(0, Math.min(100, busHealth));
+                
+                // Debug logging for first bus only (remove after debugging)
+                if (i === 0) {
+                    console.log(`Bus 1 Debug: VSI=${vStability.toFixed(4)}, Freq=${freq.toFixed(5)}, Dev=${freqDevMag.toFixed(5)}, ROCOF=${rocofMag.toFixed(5)}, Health=${busHealth.toFixed(1)}%`);
+                }
+                
+                // Determine status and styling
+                let healthStatus, healthIcon, healthColor, healthBg;
+                if (busHealth >= 85) {
+                    healthStatus = 'Excellent';
+                    healthIcon = '✓';
+                    healthColor = '#10b981';
+                    healthBg = 'rgba(16, 185, 129, 0.1)';
+                } else if (busHealth >= 70) {
+                    healthStatus = 'Good';
+                    healthIcon = '●';
+                    healthColor = '#3b82f6';
+                    healthBg = 'rgba(59, 130, 246, 0.1)';
+                } else if (busHealth >= 50) {
+                    healthStatus = 'Fair';
+                    healthIcon = '▲';
+                    healthColor = '#f59e0b';
+                    healthBg = 'rgba(245, 158, 11, 0.1)';
+                } else {
+                    healthStatus = 'Critical';
+                    healthIcon = '⚠';
+                    healthColor = '#ef4444';
+                    healthBg = 'rgba(239, 68, 68, 0.1)';
+                }
+                
+                // Build detailed tooltip
+                const tooltip = `Voltage Stability: ${(vStability * 100).toFixed(1)}%\nFreq Deviation: ${(freqDevMag * 1000).toFixed(1)} mHz\nROCOF: ${rocofMag.toFixed(4)} Hz/s\nOverall Health: ${busHealth.toFixed(0)}%`;
+                
+                return `
+                    <tr onclick="highlightBus(${i})" title="Click to highlight on network diagram">
+                        <td><strong>Bus ${i + 1}</strong></td>
+                        <td>${freq.toFixed(5)} <span style="font-size:0.85em;color:var(--text-secondary)">(${deviation >= 0 ? '+' : ''}${deviation.toFixed(4)})</span></td>
+                        <td style="color: ${Math.abs(rocof) > 0.02 ? 'var(--danger)' : 'var(--text-primary)'}">${rocof.toFixed(5)}</td>
+                        <td>${drawSparkline(busSparklineData[i])}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 8px;" title="${tooltip}">
+                                <div style="background: ${healthBg}; color: ${healthColor}; padding: 4px 10px; border-radius: 12px; font-weight: 600; font-size: 0.85em; border: 1.5px solid ${healthColor}; min-width: 85px; text-align: center;">
+                                    <span style="font-size: 1.1em;">${healthIcon}</span> ${healthStatus}
+                                </div>
+                                <div style="font-weight: 600; color: ${healthColor}; min-width: 35px;">${busHealth.toFixed(0)}%</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            // Update charts
+            updateCharts(data);
+            
+            // Update network topology
+            updateNetworkTopology(data);
+            
+            // Update insights
+            updateInsights(data);
+            
+            // Store for next comparison
+            previousData = data;
+        }
+        
+        // Update charts
+        function updateCharts(data) {
+            if (isPaused) return;
+            
+            const now = new Date().toLocaleTimeString();
+            
+            // Debug: Log data receipt
+            // console.log('updateCharts called:', { H: data.H_system, D: data.D_system, time: now });
+            
+            // Update time labels
+            if (timeLabels.length >= MAX_DATA_POINTS) {
+                timeLabels.shift();
+                inertiaHistory.shift();
+                dampingHistory.shift();
+                individualBusDeviationHistory.forEach(h => h.shift());
+                rocofHistory.forEach(h => h.shift());
+            }
+            
+            timeLabels.push(now);
+            inertiaHistory.push(data.H_system);
+            dampingHistory.push(data.D_system);
+            
+            // Initialize ROCOF history arrays if needed
+            if (rocofHistory.length === 0) {
+                rocofHistory = Array(9).fill(null).map(() => []);
+            }
+            
+            // Calculate frequency deviation statistics (in mHz)
+            const deviations = data.freq_bus.map(freq => (freq - 50.0) * 1000);
+            const avgDev = deviations.reduce((a, b) => a + b, 0) / deviations.length;
+            
+            // Store individual bus deviations
+            deviations.forEach((dev, i) => {
+                individualBusDeviationHistory[i].push(dev);
+            });
+            
+            // Calculate metrics for each bus to determine "worst offenders"
+            const busMetrics = deviations.map((dev, i) => {
+                // Calculate variance/oscillation for this bus
+                const history = individualBusDeviationHistory[i];
+                const recentHistory = history.slice(-10); // Last 10 points
+                const mean = recentHistory.reduce((a, b) => a + b, 0) / recentHistory.length;
+                const variance = recentHistory.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / recentHistory.length;
+                const stdDev = Math.sqrt(variance);
+                
+                return {
+                    bus: i,
+                    currentDev: Math.abs(dev),
+                    oscillation: stdDev,
+                    differenceFromAvg: Math.abs(dev - avgDev),
+                    // Composite score: weighted combination of all factors
+                    score: Math.abs(dev) * 0.4 + stdDev * 0.3 + Math.abs(dev - avgDev) * 0.3
+                };
+            });
+            
+            // Sort by composite score and get top 3
+            busMetrics.sort((a, b) => b.score - a.score);
+            const topBuses = busMetrics.slice(0, 3).map(m => m.bus);
+            
+            // Update frequency deviation bar chart with top 3 worst offenders
+            const barLabels = [];
+            const barData = [];
+            const barColors = [];
+            const barBorderColors = [];
+            
+            // Populate bar chart with top 3 buses
+            topBuses.forEach((busIdx, rank) => {
+                const metric = busMetrics.find(m => m.bus === busIdx);
+                const dev = deviations[busIdx];
+                
+                // Build label with reasons
+                const reasonParts = [];
+                if (metric.currentDev > 20) reasonParts.push('High Dev');
+                if (metric.oscillation > 3) reasonParts.push('Oscillating');
+                if (metric.differenceFromAvg > 5) reasonParts.push('Outlier');
+                const reason = reasonParts.length > 0 ? ` (${reasonParts.join(', ')})` : '';
+                
+                barLabels.push(`Bus ${busIdx + 1}${reason}`);
+                barData.push(dev);
+                
+                // Color based on severity
+                if (Math.abs(dev) > 50) {
+                    barColors.push('rgba(239, 68, 68, 0.8)');
+                    barBorderColors.push('#ef4444');
+                } else if (Math.abs(dev) > 20) {
+                    barColors.push('rgba(245, 158, 11, 0.8)');
+                    barBorderColors.push('#f59e0b');
+                } else if (Math.abs(dev) > 10) {
+                    barColors.push('rgba(16, 185, 129, 0.8)');
+                    barBorderColors.push('#10b981');
+                } else {
+                    barColors.push('rgba(59, 130, 246, 0.8)');
+                    barBorderColors.push('#3b82f6');
+                }
+            });
+            
+            // Update bar chart
+            frequencyDeviationChart.data.labels = barLabels;
+            frequencyDeviationChart.data.datasets[0].data = barData;
+            frequencyDeviationChart.data.datasets[0].backgroundColor = barColors;
+            frequencyDeviationChart.data.datasets[0].borderColor = barBorderColors;
+            
+            // Update ROCOF data
+            data.rocof_bus.forEach((rocof, i) => {
+                if (rocofHistory[i].length >= MAX_DATA_POINTS) {
+                    rocofHistory[i].shift();
+                }
+                rocofHistory[i].push(rocof);
+            });
+            
+            // Find top 3 buses with highest absolute ROCOF for display
+            const rocofMagnitudes = data.rocof_bus.map((r, i) => ({ bus: i, value: Math.abs(r) }));
+            rocofMagnitudes.sort((a, b) => b.value - a.value);
+            const topRocofBuses = rocofMagnitudes.slice(0, 3).map(item => item.bus);
+            
+            // Update ROCOF chart with only top offenders
+            rocofChart.data.datasets = topRocofBuses.map(busIdx => ({
+                label: `Bus ${busIdx + 1} (${data.rocof_bus[busIdx].toFixed(4)} Hz/s)`,
+                data: rocofHistory[busIdx],
+                borderColor: colors[busIdx],
+                backgroundColor: `${colors[busIdx]}33`,
+                borderWidth: 2.5,
+                tension: 0.3,
+                pointRadius: 0,
+                fill: true
+            }));
+            
+            frequencyDeviationChart.update('none'); // Update bar chart immediately
+            
+            rocofChart.data.labels = timeLabels;
+            rocofChart.update('none'); // Update immediately for real-time feel
+            
+            // Update dynamics chart data
+            dynamicsChart.data.labels = timeLabels;
+            dynamicsChart.data.datasets[0].data = inertiaHistory;
+            dynamicsChart.data.datasets[1].data = dampingHistory;
+            dynamicsChart.update('none'); // Update immediately for real-time feel
+        }
+        
+        // Fetch latest data
+        // Robust fetch with retries and Codespaces-aware messaging
+        async function fetchWithRetries(url, retries = 4) {
+            let attempt = 0;
+            while (attempt < retries) {
+                try {
+                    const response = await fetch(url, { credentials: 'same-origin' });
+
+                    if (response.status === 302 || response.status === 401) {
+                        showError('Connection blocked by proxy/auth. If using Codespaces, open the Ports panel and make port 8001 public, then click "Open in Browser".');
+                        return null;
+                    }
+
+                    if (!response.ok) {
+                        if (response.status >= 500) {
+                            attempt++;
+                            await new Promise(r => setTimeout(r, 250 * attempt));
+                            continue;
+                        }
+                        showError(`API returned status ${response.status}`);
+                        return null;
+                    }
+
+                    return await response.json();
+                } catch (err) {
+                    attempt++;
+                    if (attempt >= retries) {
+                        showError('Cannot connect to API. Make sure the server is running and port 8001 is forwarded (Ports panel).');
+                        console.error('Fetch error:', err);
+                        return null;
+                    }
+                    await new Promise(r => setTimeout(r, 200 * attempt));
+                }
+            }
+            return null;
+        }
+
+        async function fetchLatestData() {
+            const data = await fetchWithRetries(API_URL, 4);
+            if (data) updateDashboard(data);
+        }
+        
+        // Show error
+        function showError(message) {
+            document.getElementById('error-container').innerHTML = `
+                <div class="error-message fade-in">
+                    <strong>⚠️ Connection Error:</strong> ${message}
+                </div>
+            `;
+        }
+        
+        // Theme toggle
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const icon = document.getElementById('theme-icon');
+            icon.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+            
+            // Update charts
+            if (frequencyDeviationChart) {
+                const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-primary');
+                const secondaryColor = getComputedStyle(document.documentElement).getPropertyValue('--text-secondary');
+                const borderColor = getComputedStyle(document.documentElement).getPropertyValue('--border');
+                
+                frequencyDeviationChart.options.plugins.legend.labels.color = textColor;
+                frequencyDeviationChart.options.scales.x.grid.color = borderColor;
+                frequencyDeviationChart.options.scales.x.ticks.color = secondaryColor;
+                frequencyDeviationChart.options.scales.y.grid.color = function(context) {
+                    if (context.tick.value === 0) return '#10b981';
+                    return borderColor;
+                };
+                frequencyDeviationChart.options.scales.y.ticks.color = secondaryColor;
+                frequencyDeviationChart.update();
+                
+                rocofChart.options.plugins.legend.labels.color = textColor;
+                rocofChart.options.scales.x.grid.color = borderColor;
+                rocofChart.options.scales.x.ticks.color = secondaryColor;
+                rocofChart.options.scales.y.grid.color = function(context) {
+                    if (context.tick.value === 0) return '#10b981';
+                    return borderColor;
+                };
+                rocofChart.options.scales.y.ticks.color = secondaryColor;
+                rocofChart.update();
+                
+                dynamicsChart.options.plugins.legend.labels.color = textColor;
+                dynamicsChart.update();
+            }
+        }
+        
+        // Pause/Resume
+        function togglePause() {
+            isPaused = !isPaused;
+            const btn = document.getElementById('pause-btn');
+            btn.innerHTML = isPaused ? '<span>▶️</span>Play' : '<span>⏸️</span>Pause';
+        }
+        
+        // Reset charts
+        function resetCharts() {
+            timeLabels = [];
+            inertiaHistory = [];
+            dampingHistory = [];
+            individualBusDeviationHistory = Array(9).fill(null).map(() => []);
+            rocofHistory = [];
+            busSparklineData = Array(9).fill(null).map(() => []);
+            
+            if (frequencyDeviationChart) {
+                frequencyDeviationChart.data.datasets = [];
+                frequencyDeviationChart.update();
+            }
+            
+            if (rocofChart) {
+                rocofChart.data.datasets = [];
+                rocofChart.update();
+            }
+        }
+        
+        // Highlight bus on network
+        function highlightBus(busIndex) {
+            // Reset all nodes
+            for (let i = 0; i < 9; i++) {
+                const node = document.getElementById(`node-${i}`);
+                node.style.filter = '';
+            }
+            
+            // Highlight selected
+            const node = document.getElementById(`node-${busIndex}`);
+            node.style.filter = 'brightness(1.5) drop-shadow(0 0 10px currentColor)';
+            
+            setTimeout(() => {
+                node.style.filter = '';
+            }, 2000);
+        }
+        
+        // Initialize
+        initCharts();
+        initNetworkTopology();
+        fetchLatestData();
+        updateInterval = setInterval(fetchLatestData, UPDATE_INTERVAL);
+    </script>
+</body>
+</html>
