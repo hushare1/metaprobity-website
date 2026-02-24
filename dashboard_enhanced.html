@@ -1896,12 +1896,12 @@
             timeLabels.push(now);
             // Add cosmetic display drift so H visually wanders and chases nominal (purely visual layer)
             tickCount++;
-            const _driftSlow = 0.50 * Math.sin(2 * Math.PI * tickCount / 90);        // slow 90s wave ±0.50s
-            const _driftFast = 0.12 * Math.sin(2 * Math.PI * tickCount / 22 + 1.3);  // fast 22s ripple ±0.12s
+            const _driftSlow = 0.48 * Math.sin(2 * Math.PI * tickCount / 30);        // 30s wave — 2 full cycles visible
+            const _driftFast = 0.13 * Math.sin(2 * Math.PI * tickCount / 11 + 1.3); // 11s ripple on top
             const H_display = (data.H_system || 4.0) + _driftSlow + _driftFast;
             inertiaHistory.push(H_display);
-            const _dDriftSlow = 0.22 * Math.sin(2 * Math.PI * tickCount / 75 + 0.8); // D slow drift ±0.22
-            const _dDriftFast = 0.06 * Math.sin(2 * Math.PI * tickCount / 18 + 2.1); // D fast ripple ±0.06
+            const _dDriftSlow = 0.20 * Math.sin(2 * Math.PI * tickCount / 24 + 2.0); // 24s wave — different phase to H
+            const _dDriftFast = 0.06 * Math.sin(2 * Math.PI * tickCount / 9 + 0.7);  // 9s ripple on top
             const D_display = (data.D_system || 1.0) + _dDriftSlow + _dDriftFast;
             dampingHistory.push(D_display);
             // Ensure σ band is visually meaningful (minimum 0.12s so band is always visible)
