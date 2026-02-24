@@ -727,8 +727,19 @@
             <div class="main-grid">
                 <!-- Left Column: Charts -->
                 <div>
-                    <!-- Frequency Deviation Chart -->
+                    <!-- ROCOF Chart -->
                     <div class="metric-card fade-in">
+                        <h3>
+                            <span>⚡</span>
+                            Rate of Change of Frequency (ROCOF)
+                        </h3>
+                        <div class="chart-container">
+                            <canvas id="rocof-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Frequency Deviation Chart -->
+                    <div class="metric-card fade-in" style="margin-top: 25px;">
                         <h3>
                             <span>📈</span>
                             Frequency Deviation from 50 Hz (Last 60s)
@@ -755,25 +766,14 @@
                         </div>
                     </div>
                     
-                    <!-- ROCOF Chart -->
-                    <div class="metric-card fade-in" style="margin-top: 25px;">
-                        <h3>
-                            <span>⚡</span>
-                            Rate of Change of Frequency (ROCOF)
-                        </h3>
-                        <div class="chart-container">
-                            <canvas id="rocof-chart"></canvas>
-                        </div>
-                    </div>
-                    
-                    <!-- Inertia & Damping Trend -->
+                    <!-- System Inertia Chart -->
                     <div class="metric-card fade-in" style="margin-top: 25px;">
                         <h3>
                             <span>⚙️</span>
-                            System Dynamics (H & D)
+                            System Inertia (H) — EKF Estimate ± 1σ
                         </h3>
                         <div class="chart-container">
-                            <canvas id="dynamics-chart"></canvas>
+                            <canvas id="inertia-chart"></canvas>
                         </div>
                     </div>
                     
@@ -897,11 +897,12 @@
         let updateInterval;
         let isPaused = false;
         let showIndividualBuses = false;
-        let frequencyDeviationChart, rocofChart, dynamicsChart;
+        let frequencyDeviationChart, rocofChart, inertiaChart;
         let individualBusDeviationHistory = Array(9).fill(null).map(() => []);
         let rocofHistory = [];
         let inertiaHistory = [];
         let dampingHistory = [];
+        let hStdHistory = [];
         let timeLabels = [];
         let previousData = null;
         let busSparklineData = Array(9).fill(null).map(() => []);
@@ -995,15 +996,13 @@
                             const value = context.parsed.y;
                             if (Math.abs(value) > 50) return 'rgba(239, 68, 68, 0.8)';
                             if (Math.abs(value) > 20) return 'rgba(245, 158, 11, 0.8)';
-                            if (Math.abs(value) > 10) return 'rgba(16, 185, 129, 0.8)';
-                            return 'rgba(59, 130, 246, 0.8)';
+                            return 'rgba(16, 185, 129, 0.8)';
                         },
                         borderColor: function(context) {
                             const value = context.parsed.y;
                             if (Math.abs(value) > 50) return '#ef4444';
                             if (Math.abs(value) > 20) return '#f59e0b';
-                            if (Math.abs(value) > 10) return '#10b981';
-                            return '#3b82f6';
+                            return '#10b981';
                         },
                         borderWidth: 2,
                         barThickness: 80,
@@ -1089,6 +1088,8 @@
                                         text: dataset.label,
                                         fillStyle: dataset.borderColor,
                                         strokeStyle: dataset.borderColor,
+                                        fontColor: '#ffffff',
+                                        color: '#ffffff',
                                         lineWidth: 2,
                                         hidden: false,
                                         index: i
@@ -1120,54 +1121,113 @@
                 }
             });
             
-            // Dynamics Chart
-            const dynCtx = document.getElementById('dynamics-chart').getContext('2d');
-            dynamicsChart = new Chart(dynCtx, {
+            // System Inertia Chart (H EKF estimate with ±1σ uncertainty band)
+            const inertiaAlarmPlugin = {
+                id: 'inertiaAlarm',
+                beforeDraw: (chart) => {
+                    const ctx = chart.ctx;
+                    const { top, bottom, left, right } = chart.chartArea;
+                    const yScale = chart.scales.y;
+                    const yAlarm = yScale.getPixelForValue(3.5);
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.setLineDash([8, 4]);
+                    ctx.moveTo(left, yAlarm);
+                    ctx.lineTo(right, yAlarm);
+                    ctx.strokeStyle = 'rgba(239, 68, 68, 0.75)';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.85)';
+                    ctx.font = '11px sans-serif';
+                    ctx.fillText('⚠ Low Inertia Alarm (3.5 s)', left + 6, yAlarm - 5);
+                    ctx.restore();
+                }
+            };
+            const inertiaCtx = document.getElementById('inertia-chart').getContext('2d');
+            inertiaChart = new Chart(inertiaCtx, {
                 type: 'line',
                 data: {
                     labels: timeLabels,
                     datasets: [
                         {
-                            label: 'System Inertia (H)',
-                            data: inertiaHistory,
-                            borderColor: '#667eea',
-                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            // Dataset 0: upper bound (H + σ) — fills down to dataset 1
+                            label: 'H + 1σ',
+                            data: [],
+                            borderColor: 'transparent',
+                            backgroundColor: 'rgba(102, 126, 234, 0.18)',
+                            borderWidth: 0,
                             tension: 0.4,
-                            fill: true,
-                            yAxisID: 'y'
+                            pointRadius: 0,
+                            fill: '+1'
                         },
                         {
-                            label: 'System Damping (D)',
-                            data: dampingHistory,
-                            borderColor: '#10b981',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            // Dataset 1: lower bound (H − σ) — bottom of shaded band
+                            label: 'H - 1σ',
+                            data: [],
+                            borderColor: 'transparent',
+                            backgroundColor: 'transparent',
+                            borderWidth: 0,
                             tension: 0.4,
-                            fill: true,
-                            yAxisID: 'y1'
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            // Dataset 2: EKF posterior estimate
+                            label: 'H Estimate (EKF)',
+                            data: inertiaHistory,
+                            borderColor: '#667eea',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2.5,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            // Dataset 3: nominal / ground-truth reference
+                            label: 'Nominal (4.0 s)',
+                            data: [],
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'transparent',
+                            borderWidth: 1.5,
+                            borderDash: [8, 4],
+                            tension: 0,
+                            pointRadius: 0,
+                            fill: false
                         }
                     ]
                 },
                 options: {
                     ...chartOptions,
+                    plugins: {
+                        ...chartOptions.plugins,
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#ffffff',
+                                boxWidth: 20,
+                                padding: 12,
+                                filter: (item) =>
+                                    item.text !== 'H + 1σ' && item.text !== 'H - 1σ'
+                            }
+                        }
+                    },
                     scales: {
                         x: chartOptions.scales.x,
                         y: {
                             ...chartOptions.scales.y,
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: { display: true, text: 'Inertia (s)', color: '#667eea' }
-                        },
-                        y1: {
-                            ...chartOptions.scales.y,
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            title: { display: true, text: 'Damping (p.u./Hz)', color: '#10b981' },
-                            grid: { drawOnChartArea: false }
+                            min: 2.5,
+                            max: 7.0,
+                            title: {
+                                display: true,
+                                text: 'Inertia H (seconds)',
+                                color: '#667eea',
+                                font: { size: 13, weight: '600' }
+                            }
                         }
                     }
-                }
+                },
+                plugins: [inertiaAlarmPlugin]
             });
         }
         
@@ -1859,6 +1919,7 @@
                 timeLabels.shift();
                 inertiaHistory.shift();
                 dampingHistory.shift();
+                hStdHistory.shift();
                 individualBusDeviationHistory.forEach(h => h.shift());
                 rocofHistory.forEach(h => h.shift());
             }
@@ -1866,6 +1927,7 @@
             timeLabels.push(now);
             inertiaHistory.push(data.H_system);
             dampingHistory.push(data.D_system);
+            hStdHistory.push(data.H_std || 0);
             
             // Initialize ROCOF history arrays if needed
             if (rocofHistory.length === 0) {
@@ -1977,11 +2039,16 @@
             rocofChart.data.labels = timeLabels;
             rocofChart.update('none'); // Update immediately for real-time feel
             
-            // Update dynamics chart data
-            dynamicsChart.data.labels = timeLabels;
-            dynamicsChart.data.datasets[0].data = inertiaHistory;
-            dynamicsChart.data.datasets[1].data = dampingHistory;
-            dynamicsChart.update('none'); // Update immediately for real-time feel
+            // Update inertia chart (H estimate with ±1σ uncertainty band)
+            const hUpper = inertiaHistory.map((h, i) => h + (hStdHistory[i] || 0));
+            const hLower = inertiaHistory.map((h, i) => Math.max(0, h - (hStdHistory[i] || 0)));
+            const hNominal = timeLabels.map(() => 4.0);
+            inertiaChart.data.labels = timeLabels;
+            inertiaChart.data.datasets[0].data = hUpper;
+            inertiaChart.data.datasets[1].data = hLower;
+            inertiaChart.data.datasets[2].data = inertiaHistory;
+            inertiaChart.data.datasets[3].data = hNominal;
+            inertiaChart.update('none');
         }
         
         // Fetch latest data
@@ -2067,8 +2134,8 @@
                 rocofChart.options.scales.y.ticks.color = secondaryColor;
                 rocofChart.update();
                 
-                dynamicsChart.options.plugins.legend.labels.color = textColor;
-                dynamicsChart.update();
+                inertiaChart.options.plugins.legend.labels.color = textColor;
+                inertiaChart.update();
             }
         }
         
@@ -2084,6 +2151,7 @@
             timeLabels = [];
             inertiaHistory = [];
             dampingHistory = [];
+            hStdHistory = [];
             individualBusDeviationHistory = Array(9).fill(null).map(() => []);
             rocofHistory = [];
             busSparklineData = Array(9).fill(null).map(() => []);
