@@ -1171,8 +1171,8 @@
                         yH: {
                             ...chartOptions.scales.y,
                             position: 'left',
-                            suggestedMin: 3.25,
-                            suggestedMax: 4.75,
+                            suggestedMin: 3.6,
+                            suggestedMax: 4.5,
                             title: {
                                 display: true,
                                 text: 'H (seconds)',
@@ -1896,8 +1896,8 @@
             timeLabels.push(now);
             // Add cosmetic display drift so H visually wanders and chases nominal (purely visual layer)
             tickCount++;
-            const _driftSlow = 0.48 * Math.sin(2 * Math.PI * tickCount / 30);        // 30s wave — 2 full cycles visible
-            const _driftFast = 0.13 * Math.sin(2 * Math.PI * tickCount / 11 + 1.3); // 11s ripple on top
+            const _driftSlow = 0.15 * Math.sin(2 * Math.PI * tickCount / 30);        // ±0.15s slow wave
+            const _driftFast = 0.05 * Math.sin(2 * Math.PI * tickCount / 11 + 1.3); // ±0.05s fast ripple
             const H_display = (data.H_system || 4.0) + _driftSlow + _driftFast;
             inertiaHistory.push(H_display);
             const _dDriftSlow = 0.20 * Math.sin(2 * Math.PI * tickCount / 24 + 2.0); // 24s wave — different phase to H
