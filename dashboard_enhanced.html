@@ -770,7 +770,7 @@
                     <div class="metric-card fade-in" style="margin-top: 25px;">
                         <h3>
                             <span>⚙️</span>
-                            System Inertia (H) — EKF Estimate ± 1σ
+                            System Inertia (H) — EKF Estimate
                         </h3>
                         <div class="chart-container">
                             <canvas id="inertia-chart"></canvas>
@@ -1122,29 +1122,7 @@
                 }
             });
             
-            // System Inertia Chart (H EKF estimate with ±1σ uncertainty band)
-            const inertiaAlarmPlugin = {
-                id: 'inertiaAlarm',
-                beforeDraw: (chart) => {
-                    const ctx = chart.ctx;
-                    const { top, bottom, left, right } = chart.chartArea;
-                    const yScale = chart.scales.y;
-                    const yAlarm = yScale.getPixelForValue(3.5);
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.setLineDash([8, 4]);
-                    ctx.moveTo(left, yAlarm);
-                    ctx.lineTo(right, yAlarm);
-                    ctx.strokeStyle = 'rgba(239, 68, 68, 0.75)';
-                    ctx.lineWidth = 1.5;
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                    ctx.fillStyle = 'rgba(239, 68, 68, 0.85)';
-                    ctx.font = '11px sans-serif';
-                    ctx.fillText('⚠ Low Inertia Alarm (3.5 s)', left + 6, yAlarm - 5);
-                    ctx.restore();
-                }
-            };
+            // System Inertia Chart — single clean H estimate line
             const inertiaCtx = document.getElementById('inertia-chart').getContext('2d');
             inertiaChart = new Chart(inertiaCtx, {
                 type: 'line',
@@ -1152,49 +1130,14 @@
                     labels: timeLabels,
                     datasets: [
                         {
-                            // Dataset 0: upper bound (H + σ) — fills down to dataset 1
-                            label: 'H + 1σ',
-                            data: [],
-                            borderColor: 'transparent',
-                            backgroundColor: 'rgba(102, 126, 234, 0.18)',
-                            borderWidth: 0,
-                            tension: 0.4,
-                            pointRadius: 0,
-                            fill: '+1'
-                        },
-                        {
-                            // Dataset 1: lower bound (H − σ) — bottom of shaded band
-                            label: 'H - 1σ',
-                            data: [],
-                            borderColor: 'transparent',
-                            backgroundColor: 'transparent',
-                            borderWidth: 0,
-                            tension: 0.4,
-                            pointRadius: 0,
-                            fill: false
-                        },
-                        {
-                            // Dataset 2: EKF posterior estimate
                             label: 'H Estimate (EKF)',
                             data: inertiaHistory,
                             borderColor: '#667eea',
-                            backgroundColor: 'transparent',
+                            backgroundColor: 'rgba(102, 126, 234, 0.12)',
                             borderWidth: 2.5,
                             tension: 0.4,
                             pointRadius: 0,
-                            fill: false
-                        },
-                        {
-                            // Dataset 3: nominal / ground-truth reference
-                            label: 'Nominal (4.0 s)',
-                            data: [],
-                            borderColor: '#f59e0b',
-                            backgroundColor: 'transparent',
-                            borderWidth: 1.5,
-                            borderDash: [8, 4],
-                            tension: 0,
-                            pointRadius: 0,
-                            fill: false
+                            fill: true
                         }
                     ]
                 },
@@ -1202,23 +1145,14 @@
                     ...chartOptions,
                     plugins: {
                         ...chartOptions.plugins,
-                        legend: {
-                            display: true,
-                            labels: {
-                                color: '#ffffff',
-                                boxWidth: 20,
-                                padding: 12,
-                                filter: (item) =>
-                                    item.text !== 'H + 1σ' && item.text !== 'H - 1σ'
-                            }
-                        }
+                        legend: { display: false }
                     },
                     scales: {
                         x: chartOptions.scales.x,
                         y: {
                             ...chartOptions.scales.y,
-                            min: 3.2,
-                            max: 5.2,
+                            suggestedMin: 3.5,
+                            suggestedMax: 4.8,
                             title: {
                                 display: true,
                                 text: 'Inertia H (seconds)',
@@ -1227,8 +1161,7 @@
                             }
                         }
                     }
-                },
-                plugins: [inertiaAlarmPlugin]
+                }
             });
         }
         
@@ -2043,15 +1976,9 @@
             rocofChart.data.labels = timeLabels;
             rocofChart.update('none'); // Update immediately for real-time feel
             
-            // Update inertia chart (H estimate with ±1σ uncertainty band)
-            const hUpper = inertiaHistory.map((h, i) => h + (hStdHistory[i] || 0));
-            const hLower = inertiaHistory.map((h, i) => Math.max(0, h - (hStdHistory[i] || 0)));
-            const hNominal = timeLabels.map(() => 4.0);
+            // Update inertia chart — single H estimate line
             inertiaChart.data.labels = timeLabels;
-            inertiaChart.data.datasets[0].data = hUpper;
-            inertiaChart.data.datasets[1].data = hLower;
-            inertiaChart.data.datasets[2].data = inertiaHistory;
-            inertiaChart.data.datasets[3].data = hNominal;
+            inertiaChart.data.datasets[0].data = inertiaHistory;
             inertiaChart.update({ duration: 400, easing: 'easeInOutQuad' });
         }
         
