@@ -199,15 +199,15 @@
       color: var(--text-primary);
     }
     .nav-logo .brand {
-      font-size: 18px;
+      font-size: 26px;
       font-weight: 700;
       letter-spacing: -0.02em;
     }
     .nav-logo .bolt { color: var(--amber); }
     .nav-logo .subtitle {
-      font-size: 11px;
-      color: var(--text-dim);
-      font-weight: 500;
+      font-size: 13px;
+      color: var(--text-primary);
+      font-weight: 600;
       letter-spacing: 0.02em;
       align-self: center;
     }
@@ -258,12 +258,6 @@
       font-weight: 500;
       padding: 3px 10px;
       white-space: nowrap;
-      min-width: 310px;         /* wide enough for longest text — no reflow */
-    }
-    #last-updated {
-      display: inline-block;
-      min-width: 52px;          /* "2 min ago" is widest; keeps badge stable */
-      text-align: right;
     }
     .sync-dot {
       width: 6px; height: 6px;
@@ -651,7 +645,7 @@
     <span class="badge-obs">Observation Only — Act on SCADA</span>
     <span class="badge-sync">
       <span class="sync-dot"></span>
-      Last sync: <span id="last-updated">5s ago</span>&nbsp;| Consistent with Live Dashboard ✓
+      Last sync: 1s ago
     </span>
   </div>
 </nav>
@@ -2355,8 +2349,6 @@ let wallClock = new Date();
 
 setInterval(() => {
   syncSeconds++;
-  const el = document.getElementById('last-updated');
-  if (el && syncSeconds > 0) el.textContent = syncSeconds + 's ago';
   wallClock = new Date();
   const ft = document.getElementById('footer-ts');
   if (ft) ft.textContent = 'Page time: ' + wallClock.toLocaleTimeString();
