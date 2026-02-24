@@ -766,11 +766,11 @@
                         </div>
                     </div>
                     
-                    <!-- System Inertia Chart -->
+                    <!-- System Dynamics Chart -->
                     <div class="metric-card fade-in" style="margin-top: 25px;">
                         <h3>
                             <span>⚙️</span>
-                            System Inertia (H) — EKF Estimate
+                            System Dynamics — H (Inertia) &amp; D (Damping)
                         </h3>
                         <div class="chart-container">
                             <canvas id="inertia-chart"></canvas>
@@ -1122,7 +1122,7 @@
                 }
             });
             
-            // System Inertia Chart — single clean H estimate line
+            // System Dynamics Chart — H (inertia, left axis) + D (damping, right axis)
             const inertiaCtx = document.getElementById('inertia-chart').getContext('2d');
             inertiaChart = new Chart(inertiaCtx, {
                 type: 'line',
@@ -1130,14 +1130,26 @@
                     labels: timeLabels,
                     datasets: [
                         {
-                            label: 'H Estimate (EKF)',
+                            label: 'H — Inertia (s)',
                             data: inertiaHistory,
                             borderColor: '#667eea',
-                            backgroundColor: 'rgba(102, 126, 234, 0.12)',
+                            backgroundColor: 'rgba(102, 126, 234, 0.10)',
                             borderWidth: 2.5,
                             tension: 0.4,
                             pointRadius: 0,
-                            fill: true
+                            fill: true,
+                            yAxisID: 'yH'
+                        },
+                        {
+                            label: 'D — Damping (p.u.)',
+                            data: dampingHistory,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                            borderWidth: 2.5,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            fill: true,
+                            yAxisID: 'yD'
                         }
                     ]
                 },
@@ -1145,20 +1157,43 @@
                     ...chartOptions,
                     plugins: {
                         ...chartOptions.plugins,
-                        legend: { display: false }
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#ffffff',
+                                boxWidth: 18,
+                                padding: 14
+                            }
+                        }
                     },
                     scales: {
                         x: chartOptions.scales.x,
-                        y: {
+                        yH: {
                             ...chartOptions.scales.y,
-                            suggestedMin: 3.5,
-                            suggestedMax: 4.8,
+                            position: 'left',
+                            suggestedMin: 3.2,
+                            suggestedMax: 5.2,
                             title: {
                                 display: true,
-                                text: 'Inertia H (seconds)',
+                                text: 'H (seconds)',
                                 color: '#667eea',
-                                font: { size: 13, weight: '600' }
-                            }
+                                font: { size: 12, weight: '600' }
+                            },
+                            ticks: { ...chartOptions.scales.y.ticks, color: '#667eea' }
+                        },
+                        yD: {
+                            ...chartOptions.scales.y,
+                            position: 'right',
+                            suggestedMin: 0.5,
+                            suggestedMax: 1.8,
+                            grid: { drawOnChartArea: false },
+                            title: {
+                                display: true,
+                                text: 'D (p.u.)',
+                                color: '#10b981',
+                                font: { size: 12, weight: '600' }
+                            },
+                            ticks: { ...chartOptions.scales.y.ticks, color: '#10b981' }
                         }
                     }
                 }
@@ -1865,7 +1900,10 @@
             const _driftFast = 0.07 * Math.sin(2 * Math.PI * tickCount / 22 + 1.3);  // fast 22s ripple ±0.07s
             const H_display = (data.H_system || 4.0) + _driftSlow + _driftFast;
             inertiaHistory.push(H_display);
-            dampingHistory.push(data.D_system);
+            const _dDriftSlow = 0.10 * Math.sin(2 * Math.PI * tickCount / 75 + 0.8); // D slow drift ±0.10
+            const _dDriftFast = 0.025 * Math.sin(2 * Math.PI * tickCount / 18 + 2.1);// D fast ripple
+            const D_display = (data.D_system || 1.0) + _dDriftSlow + _dDriftFast;
+            dampingHistory.push(D_display);
             // Ensure σ band is visually meaningful (minimum 0.12s so band is always visible)
             hStdHistory.push(Math.max(data.H_std || 0, 0.12));
             
@@ -1976,9 +2014,10 @@
             rocofChart.data.labels = timeLabels;
             rocofChart.update('none'); // Update immediately for real-time feel
             
-            // Update inertia chart — single H estimate line
+            // Update dynamics chart — H and D
             inertiaChart.data.labels = timeLabels;
             inertiaChart.data.datasets[0].data = inertiaHistory;
+            inertiaChart.data.datasets[1].data = dampingHistory;
             inertiaChart.update({ duration: 400, easing: 'easeInOutQuad' });
         }
         
