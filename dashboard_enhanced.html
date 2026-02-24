@@ -1171,8 +1171,8 @@
                         yH: {
                             ...chartOptions.scales.y,
                             position: 'left',
-                            suggestedMin: 3.6,
-                            suggestedMax: 4.5,
+                            min: 3.6,
+                            max: 4.5,
                             title: {
                                 display: true,
                                 text: 'H (seconds)',
@@ -1184,8 +1184,8 @@
                         yD: {
                             ...chartOptions.scales.y,
                             position: 'right',
-                            suggestedMin: 0.7,
-                            suggestedMax: 1.3,
+                            min: 0.7,
+                            max: 1.3,
                             grid: { drawOnChartArea: false },
                             title: {
                                 display: true,
@@ -2008,7 +2008,7 @@
             inertiaChart.data.labels = timeLabels;
             inertiaChart.data.datasets[0].data = inertiaHistory;
             inertiaChart.data.datasets[1].data = dampingHistory;
-            inertiaChart.update({ duration: 400, easing: 'easeInOutQuad' });
+            inertiaChart.update('none');
         }
         
         // Fetch latest data
