@@ -40,90 +40,59 @@
             padding: 20px;
         }
         
-        /* Header Styles */
+        /* Status Bar */
         .header {
-            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-            margin-bottom: 25px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120"><path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" fill="rgba(255,255,255,0.1)"></path></svg>') no-repeat bottom;
-            background-size: cover;
-            opacity: 0.3;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
         }
         
         .header-content {
-            position: relative;
-            z-index: 1;
-        }
-        
-        .header h1 {
-            color: white;
-            font-size: 2.8em;
-            margin-bottom: 10px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        
-        .header p {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 1.1em;
-            margin-bottom: 20px;
+            display: contents;
         }
         
         .header-controls {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 16px;
         }
         
         .health-score {
-            background: var(--bg-card);
-            backdrop-filter: blur(10px);
-            padding: 15px 25px;
-            border-radius: 50px;
             display: flex;
             align-items: center;
-            gap: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            gap: 10px;
         }
         
         .health-score-circle {
-            width: 60px;
-            height: 60px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.8em;
+            font-size: 1em;
             font-weight: bold;
             background: conic-gradient(var(--success) 0deg, var(--success) calc(var(--score, 100) * 3.6deg), #334155 calc(var(--score, 100) * 3.6deg), #334155 360deg);
             position: relative;
         }
         
         .health-score-inner {
-            width: 50px;
-            height: 50px;
-            background: var(--bg-card);
+            width: 32px;
+            height: 32px;
+            background: var(--bg-secondary);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 0.8em;
             color: var(--text-primary);
         }
         
@@ -182,25 +151,10 @@
             50% { opacity: 0.8; transform: scale(1.02); }
         }
         
-        .theme-toggle {
-            background: var(--bg-card);
-            border: 2px solid var(--border);
-            padding: 8px 16px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1.2em;
-            transition: all 0.3s ease;
-        }
-        
-        .theme-toggle:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        
         .timestamp {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 0.95em;
-            margin-top: 10px;
+            font-size: 0.82em;
+            color: var(--text-secondary);
+            font-variant-numeric: tabular-nums;
         }
         
         /* Insights Panel */
@@ -643,40 +597,26 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
+        <!-- Status Bar -->
         <div class="header fade-in">
-            <div class="header-content">
-                <h1>
-                    <span>⚡</span>
-                    GridSense-AI Pro
-                </h1>
-                <p>Real-Time Power Grid Monitoring & Predictive Analytics</p>
-                
-                <div class="header-controls">
-                    <div class="health-score">
-                        <div class="health-score-circle" id="health-circle" style="--score: 100">
-                            <div class="health-score-inner" id="health-value">100</div>
-                        </div>
-                        <div class="health-score-text">
-                            <div class="health-score-label">Grid Health Score</div>
-                            <div class="health-score-status" id="health-status">Excellent</div>
-                        </div>
-                    </div>
-                    
-                    <div class="status-badges">
-                        <div class="badge badge-success" id="status-badge">
-                            <span>✓</span>
-                            <span>System Normal</span>
-                        </div>
-                    </div>
-                    
-                    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark Mode">
-                        <span id="theme-icon">🌙</span>
-                    </button>
+            <div class="health-score">
+                <div class="health-score-circle" id="health-circle" style="--score: 100">
+                    <div class="health-score-inner" id="health-value">100</div>
                 </div>
-                
-                <div class="timestamp" id="timestamp">Connecting...</div>
+                <div class="health-score-text">
+                    <div class="health-score-label">Grid Health Score</div>
+                    <div class="health-score-status" id="health-status">Excellent</div>
+                </div>
             </div>
+            
+            <div class="status-badges">
+                <div class="badge badge-success" id="status-badge">
+                    <span>✓</span>
+                    <span>System Normal</span>
+                </div>
+            </div>
+
+            <div class="timestamp" id="timestamp">Connecting...</div>
         </div>
         
         <!-- Loading State -->
