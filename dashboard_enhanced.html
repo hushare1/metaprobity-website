@@ -1480,7 +1480,7 @@
 
                     // Flow label
                     if (lbEl) {
-                        lbEl.textContent = `${Math.abs(ln.p_mw).toFixed(0)} MW`;
+                        lbEl.textContent = `${Math.abs(ln.p_mw).toFixed(1)} MW`;
                         lbEl.setAttribute('fill', pct >= 90 ? '#ef4444' : '#fbbf24');
                     }
                 });
