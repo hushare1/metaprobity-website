@@ -308,54 +308,43 @@
         .trend-down { color: var(--danger); }
         
         /* Network Topology */
+        /* ── SCADA Single-Line Diagram ──────────────────────────── */
         .network-container {
             position: relative;
-            height: 400px;
-            background: var(--bg-primary);
+            height: 480px;
+            background: #080f1a;
             border-radius: 10px;
             overflow: hidden;
         }
-        
+
         .network-svg {
             width: 100%;
             height: 100%;
         }
-        
-        .bus-node {
+
+        .sld-busbar {
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: filter 0.25s;
         }
-        
-        .bus-node:hover {
-            filter: brightness(1.2);
+        .sld-busbar:hover { filter: brightness(1.35); }
+
+        .sld-line {
+            stroke-dasharray: 10 5;
+            stroke-linecap: round;
+            transition: stroke 0.4s, stroke-width 0.35s;
+            cursor: pointer;
         }
-        
-        .bus-node circle {
-            stroke: var(--accent-primary);
-            stroke-width: 3;
+        .sld-line:hover { opacity: 1 !important; filter: brightness(1.4); }
+
+        @keyframes sld-flow-fwd {
+            from { stroke-dashoffset: 0; } to { stroke-dashoffset: -15; }
         }
-        
-        .line-connection {
-            stroke: var(--text-secondary);
-            stroke-width: 2;
-            opacity: 0.6;
-            transition: all 0.3s ease;
+        @keyframes sld-flow-rev {
+            from { stroke-dashoffset: 0; } to { stroke-dashoffset: 15; }
         }
-        
-        .line-connection:hover {
-            stroke-width: 4;
-            opacity: 1;
-        }
-        
-        .generator-icon {
-            fill: var(--accent-primary);
-            animation: pulse-gen 2s infinite;
-        }
-        
-        @keyframes pulse-gen {
-            0%, 100% { opacity: 0.8; }
-            50% { opacity: 1; }
-        }
+        .flow-fwd  { animation: sld-flow-fwd 0.75s linear infinite; }
+        .flow-rev  { animation: sld-flow-rev 0.75s linear infinite; }
+        .flow-idle { stroke-dasharray: 4 3; animation: none; }
         
         /* Charts */
         .chart-container {
@@ -560,19 +549,7 @@
             animation: fadeIn 0.5s ease-out;
         }
         
-        /* Line styles for topology arrows */
-        .line-connection {
-            stroke: #9ca3af;
-            stroke-width: 2;
-            stroke-linecap: round;
-            opacity: 0.95;
-        }
-
-        .line-center-arrow {
-            pointer-events: none;
-            transform-origin: center;
-            /* ensure it sits above other svg shapes visually */
-        }
+        /* SCADA SLD — legacy arrow classes removed */
 
         /* Responsive Design */
         @media (max-width: 768px) {
@@ -738,34 +715,60 @@
                         </div>
                     </div>
                     
-                    <!-- Frequency Deviation Chart -->
+                    <!-- Network Topology (moved to left/wide column) -->
                     <div class="metric-card fade-in" style="margin-top: 25px;">
                         <h3>
-                            <span>📈</span>
-                            Frequency Deviation from 50 Hz (Last 60s)
+                            <span>🌐</span>
+                            Network Topology
                         </h3>
-                        <div class="chart-container">
-                            <canvas id="frequency-deviation-chart"></canvas>
+                        <div style="display: flex; justify-content: space-around; margin-bottom: 15px; font-size: 13px;">
+                            <div style="text-align: center;">
+                                <div style="color: var(--text-secondary); font-size: 11px;">Total Generation</div>
+                                <div id="total-gen" style="font-size: 18px; font-weight: 700; color: #10b981;">-- MW</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="color: var(--text-secondary); font-size: 11px;">Total Load</div>
+                                <div id="total-load" style="font-size: 18px; font-weight: 700; color: #ef4444;">-- MW</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="color: var(--text-secondary); font-size: 11px;">Balance</div>
+                                <div id="power-balance" style="font-size: 18px; font-weight: 700; color: var(--primary);">-- MW</div>
+                            </div>
                         </div>
-                        <div class="controls" style="justify-content: space-between; align-items: center;">
-                            <div style="display:flex; gap:10px;">
-                                <button class="btn btn-secondary" onclick="resetCharts()">
-                                    <span>🔄</span>
-                                    Reset
-                                </button>
-                                <button class="btn btn-secondary" id="pause-btn" onclick="togglePause()">
-                                    <span>⏸️</span>
-                                    Pause
-                                </button>
-                            </div>
-                            <div style="display:flex; gap:14px; align-items:center; font-size:0.82em; color:var(--text-muted);">
-                                <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block;"></span>Normal (&lt;20 mHz)</span>
-                                <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>Warning (20–50 mHz)</span>
-                                <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;"></span>Critical (&gt;50 mHz)</span>
-                            </div>
+                        <div class="network-container" style="height: 540px;">
+                            <svg class="network-svg" id="network-svg" viewBox="0 0 560 430">
+                                <g id="lines-layer"></g>
+                                <g id="nodes-layer"></g>
+                            </svg>
+                        </div>
+                        <div style="display:flex;justify-content:center;gap:14px;margin-top:10px;font-size:11px;flex-wrap:wrap;align-items:center;">
+                            <span style="display:flex;align-items:center;gap:4px;">
+                                <svg width="20" height="20" viewBox="-22 -22 44 44"><circle r="18" fill="none" stroke="#10b981" stroke-width="2.5"/><text text-anchor="middle" y="5" font-size="13" font-weight="bold" fill="#10b981">G</text></svg>
+                                Generator
+                            </span>
+                            <span style="display:flex;align-items:center;gap:4px;">
+                                <svg width="18" height="18" viewBox="-13 0 26 22"><polygon points="0,0 -13,22 13,22" fill="#ef4444" opacity="0.85"/></svg>
+                                Load
+                            </span>
+                            <span style="display:flex;align-items:center;gap:4px;">
+                                <svg width="14" height="22" viewBox="-8 -20 16 40"><circle cx="0" cy="-10" r="9" fill="none" stroke="#8b5cf6" stroke-width="2"/><circle cx="0" cy="10" r="9" fill="none" stroke="#8b5cf6" stroke-width="2"/></svg>
+                                Transformer
+                            </span>
+                            <span style="display:flex;align-items:center;gap:4px;">
+                                <svg width="30" height="6"><line x1="0" y1="3" x2="30" y2="3" stroke="#10b981" stroke-width="2.5" stroke-dasharray="8 4"/></svg>
+                                Normal (&lt;70%)
+                            </span>
+                            <span style="display:flex;align-items:center;gap:4px;">
+                                <svg width="30" height="6"><line x1="0" y1="3" x2="30" y2="3" stroke="#f59e0b" stroke-width="3.5" stroke-dasharray="8 4"/></svg>
+                                Loaded (70–90%)
+                            </span>
+                            <span style="display:flex;align-items:center;gap:4px;">
+                                <svg width="30" height="6"><line x1="0" y1="3" x2="30" y2="3" stroke="#ef4444" stroke-width="4.5" stroke-dasharray="8 4"/></svg>
+                                Overload (&gt;90%)
+                            </span>
                         </div>
                     </div>
-                    
+
                     <!-- System Dynamics Chart -->
                     <div class="metric-card fade-in" style="margin-top: 25px;">
                         <h3>
@@ -843,39 +846,31 @@
                         </div>
                     </div>
                     
-                    <!-- Network Topology -->
+                    <!-- Frequency Deviation Chart (moved to right/narrow column) -->
                     <div class="metric-card fade-in" style="margin-top: 25px;">
                         <h3>
-                            <span>🌐</span>
-                            Network Topology
+                            <span>📈</span>
+                            Frequency Deviation from 50 Hz (Last 60s)
                         </h3>
-                        <div style="display: flex; justify-content: space-around; margin-bottom: 15px; font-size: 13px;">
-                            <div style="text-align: center;">
-                                <div style="color: var(--text-secondary); font-size: 11px;">Total Generation</div>
-                                <div id="total-gen" style="font-size: 18px; font-weight: 700; color: #10b981;">-- MW</div>
-                            </div>
-                            <div style="text-align: center;">
-                                <div style="color: var(--text-secondary); font-size: 11px;">Total Load</div>
-                                <div id="total-load" style="font-size: 18px; font-weight: 700; color: #ef4444;">-- MW</div>
-                            </div>
-                            <div style="text-align: center;">
-                                <div style="color: var(--text-secondary); font-size: 11px;">Balance</div>
-                                <div id="power-balance" style="font-size: 18px; font-weight: 700; color: var(--primary);">-- MW</div>
-                            </div>
+                        <div class="chart-container">
+                            <canvas id="frequency-deviation-chart"></canvas>
                         </div>
-                        <div class="network-container">
-                            <svg class="network-svg" id="network-svg" viewBox="0 0 400 450">
-                                <!-- No end/start markers — arrows rendered at line centers -->
-                                <!-- Lines will be drawn first (background) -->
-                                <g id="lines-layer"></g>
-                                <!-- Nodes will be drawn on top -->
-                                <g id="nodes-layer"></g>
-                            </svg>
-                        </div>
-                        <div style="display: flex; justify-content: center; gap: 15px; margin-top: 10px; font-size: 11px;">
-                            <div><span style="color: #10b981; font-size: 16px;">⚡</span> Generator</div>
-                            <div><span style="color: #ef4444; font-size: 16px;">🏭</span> Load</div>
-                            <div><span style="color: #8b5cf6; font-size: 16px;">⚙️</span> Transmission</div>
+                        <div class="controls" style="justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                            <div style="display:flex; gap:10px;">
+                                <button class="btn btn-secondary" onclick="resetCharts()">
+                                    <span>🔄</span>
+                                    Reset
+                                </button>
+                                <button class="btn btn-secondary" id="pause-btn" onclick="togglePause()">
+                                    <span>⏸️</span>
+                                    Pause
+                                </button>
+                            </div>
+                            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; font-size:0.82em; color:var(--text-muted);">
+                                <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#10b981;display:inline-block;"></span>Normal (&lt;20 mHz)</span>
+                                <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#f59e0b;display:inline-block;"></span>Warning (20–50 mHz)</span>
+                                <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:50%;background:#ef4444;display:inline-block;"></span>Critical (&gt;50 mHz)</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1200,330 +1195,294 @@
             });
         }
         
-        // Initialize network topology
+        // ── SCADA Single-Line Diagram — IEEE 9-bus ──────────────────
         function initNetworkTopology() {
+            const ns = 'http://www.w3.org/2000/svg';
             const svg = document.getElementById('network-svg');
             const linesLayer = document.getElementById('lines-layer');
             const nodesLayer = document.getElementById('nodes-layer');
-            
-            // Bus types: GEN, LOAD, TRANS
-            const busTypes = ['GEN', 'GEN', 'GEN', 'TRANS', 'LOAD', 'LOAD', 'TRANS', 'LOAD', 'TRANS'];
-            
-            // IEEE 9-bus topology layout
-            const busPositions = [
-                { x: 100, y: 100, type: 'GEN' },   // Bus 1 (Gen)
-                { x: 300, y: 100, type: 'GEN' },   // Bus 2 (Gen)
-                { x: 200, y: 50, type: 'GEN' },    // Bus 3 (Gen)
-                { x: 80, y: 200, type: 'TRANS' },  // Bus 4
-                { x: 200, y: 250, type: 'LOAD' },  // Bus 5
-                { x: 320, y: 200, type: 'LOAD' },  // Bus 6
-                { x: 100, y: 340, type: 'TRANS' }, // Bus 7
-                { x: 200, y: 380, type: 'LOAD' },  // Bus 8
-                { x: 300, y: 340, type: 'TRANS' }  // Bus 9
+            linesLayer.innerHTML = '';
+            nodesLayer.innerHTML = '';
+
+            // ── SVG <defs>: IEC generator symbol ─────────────────────
+            let defs = svg.querySelector('defs');
+            if (!defs) { defs = document.createElementNS(ns, 'defs'); svg.insertBefore(defs, svg.firstChild); }
+            defs.innerHTML = '';
+            const genSym = document.createElementNS(ns, 'symbol');
+            genSym.setAttribute('id', 'sym-gen');
+            genSym.setAttribute('viewBox', '-22 -22 44 44');
+            const gc = document.createElementNS(ns, 'circle');
+            gc.setAttribute('cx','0'); gc.setAttribute('cy','0'); gc.setAttribute('r','20');
+            gc.setAttribute('fill','none'); gc.setAttribute('stroke','currentColor'); gc.setAttribute('stroke-width','2.5');
+            const gt = document.createElementNS(ns, 'text');
+            gt.setAttribute('text-anchor','middle'); gt.setAttribute('y','5');
+            gt.setAttribute('font-size','15'); gt.setAttribute('font-weight','bold'); gt.setAttribute('fill','currentColor');
+            gt.textContent = 'G';
+            genSym.appendChild(gc); genSym.appendChild(gt);
+            defs.appendChild(genSym);
+
+            // ── Bus layout ───────────────────────────────────────────
+            // cx = horizontal centre;  by = top-y of busbar
+            // calx/caly = top-left corner of data callout box
+            const BW = 64, BH = 8;
+            const buses = [
+                { id:1, cx:100, by:130, type:'GEN',   calx:108, caly:114 },
+                { id:2, cx:280, by:130, type:'GEN',   calx:288, caly:114 },
+                { id:3, cx:460, by:130, type:'GEN',   calx:370, caly:114 },
+                { id:4, cx:100, by:260, type:'TRANS', calx:8,   caly:250 },
+                { id:5, cx:165, by:375, type:'LOAD',  calx:75,  caly:374 },
+                { id:6, cx:280, by:385, type:'LOAD',  calx:193, caly:384 },
+                { id:7, cx:280, by:260, type:'TRANS', calx:288, caly:250 },
+                { id:8, cx:395, by:375, type:'LOAD',  calx:403, caly:374 },
+                { id:9, cx:460, by:260, type:'TRANS', calx:370, caly:250 },
             ];
-            
-            // Connections (IEEE 9-bus - 9 transmission lines)
-            // Matches backend line_flows: 1-4, 2-7, 3-9, 4-5, 4-6, 5-7, 6-9, 7-8, 8-9
-            const connections = [
-                [0, 3],  // Bus 1-4
-                [1, 6],  // Bus 2-7
-                [2, 8],  // Bus 3-9
-                [3, 4],  // Bus 4-5
-                [3, 5],  // Bus 4-6
-                [4, 6],  // Bus 5-7
-                [5, 8],  // Bus 6-9
-                [6, 7],  // Bus 7-8
-                [7, 8]   // Bus 8-9
+            const bcy = b => b.by + BH / 2;  // vertical centre of busbar
+
+            // ── Transmission line definitions ─────────────────────
+            // key = canonical "smallerId-largerId" matching API normalisation
+            const lineData = [
+                { f:0, t:3, key:'1-4' }, { f:1, t:6, key:'2-7' }, { f:2, t:8, key:'3-9' },
+                { f:3, t:4, key:'4-5' }, { f:3, t:5, key:'4-6' }, { f:4, t:6, key:'5-7' },
+                { f:5, t:8, key:'6-9' }, { f:6, t:7, key:'7-8' }, { f:7, t:8, key:'8-9' },
             ];
-            
-            // Draw lines
-            connections.forEach(([from, to]) => {
-                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                line.setAttribute('class', 'line-connection');
-                line.setAttribute('id', `line-${from}-${to}`);
-                line.setAttribute('x1', busPositions[from].x);
-                line.setAttribute('y1', busPositions[from].y);
-                line.setAttribute('x2', busPositions[to].x);
-                line.setAttribute('y2', busPositions[to].y);
-                line.setAttribute('data-from', from);
-                line.setAttribute('data-to', to);
-                // Default: no arrow until we set direction from live data
-                line.setAttribute('marker-start', 'none');
-                line.setAttribute('marker-end', 'none');
-                linesLayer.appendChild(line);
-            });
-            
-            // Draw bus nodes
-            busPositions.forEach((pos, i) => {
-                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-                g.setAttribute('class', 'bus-node');
-                g.setAttribute('data-bus', i);
-                g.setAttribute('transform', `translate(${pos.x}, ${pos.y})`);
-                
-                // Node circle
-                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                const nodeSize = pos.type === 'GEN' ? 16 : (pos.type === 'LOAD' ? 14 : 11);
-                circle.setAttribute('r', nodeSize);
-                const nodeColor = pos.type === 'GEN' ? '#10b981' : (pos.type === 'LOAD' ? '#ef4444' : '#8b5cf6');
-                circle.setAttribute('fill', nodeColor);
-                circle.setAttribute('id', `node-${i}`);
-                g.appendChild(circle);
-                
-                // Icon based on type (simple text emoji)
-                const icon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                icon.setAttribute('text-anchor', 'middle');
-                icon.setAttribute('font-size', '10');
-                icon.setAttribute('y', '4');
-                icon.setAttribute('fill', '#ffffff');
-                icon.textContent = pos.type === 'GEN' ? '⚡' : (pos.type === 'LOAD' ? '🏭' : '⚙');
-                g.appendChild(icon);
-                
-                // Bus label
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('y', '30');
-                text.setAttribute('text-anchor', 'middle');
-                text.setAttribute('fill', getComputedStyle(document.documentElement).getPropertyValue('--text-primary'));
-                text.setAttribute('font-size', '11');
-                text.setAttribute('font-weight', 'bold');
-                text.textContent = `Bus ${i + 1}`;
-                g.appendChild(text);
-                
-                // Frequency label
-                const freqText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                freqText.setAttribute('y', '42');
-                freqText.setAttribute('text-anchor', 'middle');
-                freqText.setAttribute('fill', getComputedStyle(document.documentElement).getPropertyValue('--text-secondary'));
-                freqText.setAttribute('font-size', '9');
-                freqText.setAttribute('id', `freq-label-${i}`);
-                freqText.textContent = '50.00 Hz';
-                g.appendChild(freqText);
-                
-                // Voltage label
-                const voltText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                voltText.setAttribute('y', '52');
-                voltText.setAttribute('text-anchor', 'middle');
-                voltText.setAttribute('fill', getComputedStyle(document.documentElement).getPropertyValue('--text-secondary'));
-                voltText.setAttribute('font-size', '8');
-                voltText.setAttribute('id', `volt-label-${i}`);
-                voltText.textContent = '1.00 pu';
-                g.appendChild(voltText);
-                
-                // Power label
-                const powerText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                powerText.setAttribute('y', '62');
-                powerText.setAttribute('text-anchor', 'middle');
-                powerText.setAttribute('fill', getComputedStyle(document.documentElement).getPropertyValue('--text-secondary'));
-                powerText.setAttribute('font-size', '8');
-                powerText.setAttribute('font-weight', 'bold');
-                powerText.setAttribute('id', `power-label-${i}`);
-                powerText.textContent = '0 MW';
-                g.appendChild(powerText);
-                
-                nodesLayer.appendChild(g);
+
+            // ── Draw transmission lines ──────────────────────────
+            lineData.forEach(ld => {
+                const bA = buses[ld.f], bB = buses[ld.t];
+                const x1 = bA.cx, y1 = bcy(bA), x2 = bB.cx, y2 = bcy(bB);
+                const lg = document.createElementNS(ns, 'g');
+                lg.setAttribute('id', `sld-lg-${ld.key}`);
+
+                const lineEl = document.createElementNS(ns, 'line');
+                lineEl.setAttribute('id',           `sld-line-${ld.key}`);
+                lineEl.setAttribute('class',        'sld-line flow-idle');
+                lineEl.setAttribute('x1', x1); lineEl.setAttribute('y1', y1);
+                lineEl.setAttribute('x2', x2); lineEl.setAttribute('y2', y2);
+                lineEl.setAttribute('stroke',       '#10b981');
+                lineEl.setAttribute('stroke-width', '2.5');
+                lg.appendChild(lineEl);
+
+                // Flow label — placed at 28% for gen step-up lines, 50% for others
+                const t = ['1-4','2-7','3-9'].includes(ld.key) ? 0.28 : 0.50;
+                const lx = x1 + (x2 - x1) * t;
+                const ly = y1 + (y2 - y1) * t;
+                // 10 px perpendicular offset so label doesn't sit on the line
+                const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx*dx+dy*dy)||1;
+                const ox = (-dy/len)*11, oy = (dx/len)*11;
+
+                const lbg = document.createElementNS(ns, 'rect');
+                lbg.setAttribute('id', `sld-lbg-${ld.key}`);
+                lbg.setAttribute('x', lx+ox-20); lbg.setAttribute('y', ly+oy-9);
+                lbg.setAttribute('width','40'); lbg.setAttribute('height','16');
+                lbg.setAttribute('rx','4');
+                lbg.setAttribute('fill','rgba(8,15,26,0.88)');
+                lbg.setAttribute('stroke','#10b981'); lbg.setAttribute('stroke-width','0.8');
+                lg.appendChild(lbg);
+
+                const lbt = document.createElementNS(ns, 'text');
+                lbt.setAttribute('id', `sld-lb-${ld.key}`);
+                lbt.setAttribute('x', lx+ox); lbt.setAttribute('y', ly+oy+4);
+                lbt.setAttribute('text-anchor','middle');
+                lbt.setAttribute('font-size','9.5'); lbt.setAttribute('font-weight','bold');
+                lbt.setAttribute('fill','#fbbf24');
+                lbt.textContent = '-- MW';
+                lg.appendChild(lbt);
+
+                linesLayer.appendChild(lg);
             });
 
-            // Red-ink markers removed per user request.
+            // ── IEC transformer symbols on generator step-up lines ─
+            // Lines 1-4, 2-7, 3-9 are all vertical; place two tangent circles at midpoint
+            [[0,3],[1,6],[2,8]].forEach(([gi, ti]) => {
+                const bG = buses[gi], bT = buses[ti];
+                const mx = bG.cx;
+                const my = (bcy(bG) + bcy(bT)) / 2;
+                // Blank background to break the line behind the symbol
+                const bg = document.createElementNS(ns, 'rect');
+                bg.setAttribute('x', mx-14); bg.setAttribute('y', my-23);
+                bg.setAttribute('width','28'); bg.setAttribute('height','46');
+                bg.setAttribute('fill','#080f1a');
+                linesLayer.appendChild(bg);
+                // Two tangent circles (IEC transformer symbol)
+                [my-11, my+11].forEach(cy => {
+                    const c = document.createElementNS(ns, 'circle');
+                    c.setAttribute('cx', mx); c.setAttribute('cy', cy); c.setAttribute('r','10');
+                    c.setAttribute('fill','none');
+                    c.setAttribute('stroke','#8b5cf6'); c.setAttribute('stroke-width','2');
+                    linesLayer.appendChild(c);
+                });
+            });
+
+            // ── Busbars + IEC symbols + data callouts ─────────────
+            const busColor = t => t==='GEN' ? '#10b981' : t==='LOAD' ? '#ef4444' : '#8b5cf6';
+
+            buses.forEach(bus => {
+                const bc = busColor(bus.type);
+                const g  = document.createElementNS(ns, 'g');
+                g.setAttribute('id', `sld-bg-${bus.id}`);
+
+                // Generator: circle-with-G symbol above busbar
+                if (bus.type === 'GEN') {
+                    const stub = document.createElementNS(ns, 'line');
+                    stub.setAttribute('x1', bus.cx); stub.setAttribute('y1', bus.by - 36);
+                    stub.setAttribute('x2', bus.cx); stub.setAttribute('y2', bus.by);
+                    stub.setAttribute('stroke', bc); stub.setAttribute('stroke-width','2.5');
+                    g.appendChild(stub);
+                    const u = document.createElementNS(ns, 'use');
+                    u.setAttribute('href','#sym-gen');
+                    u.setAttribute('x', bus.cx-22); u.setAttribute('y', bus.by-36-44);
+                    u.setAttribute('width','44');    u.setAttribute('height','44');
+                    u.setAttribute('color', bc);
+                    g.appendChild(u);
+                }
+
+                // Busbar rectangle
+                const bar = document.createElementNS(ns, 'rect');
+                bar.setAttribute('id',    `sld-bar-${bus.id}`);
+                bar.setAttribute('class', 'sld-busbar');
+                bar.setAttribute('x',     bus.cx - BW/2);
+                bar.setAttribute('y',     bus.by);
+                bar.setAttribute('width', BW); bar.setAttribute('height', BH);
+                bar.setAttribute('rx','3'); bar.setAttribute('fill', bc);
+                g.appendChild(bar);
+
+                // Bus ID label
+                const lbl = document.createElementNS(ns, 'text');
+                const lblY = bus.type==='GEN'
+                    ? bus.by - 36 - 52
+                    : bus.by + BH + (bus.type==='LOAD' ? 46 : 18);
+                lbl.setAttribute('x', bus.cx); lbl.setAttribute('y', lblY);
+                lbl.setAttribute('text-anchor','middle');
+                lbl.setAttribute('font-size','11'); lbl.setAttribute('font-weight','bold');
+                lbl.setAttribute('fill','#e2e8f0');
+                lbl.textContent = `B${bus.id}`;
+                g.appendChild(lbl);
+
+                // Load: inverted triangle below busbar + connecting stub
+                if (bus.type === 'LOAD') {
+                    const ly0 = bus.by + BH + 2;
+                    const stub2 = document.createElementNS(ns, 'line');
+                    stub2.setAttribute('x1', bus.cx); stub2.setAttribute('y1', bus.by+BH);
+                    stub2.setAttribute('x2', bus.cx); stub2.setAttribute('y2', ly0);
+                    stub2.setAttribute('stroke', bc); stub2.setAttribute('stroke-width','2');
+                    g.appendChild(stub2);
+                    const tri = document.createElementNS(ns, 'polygon');
+                    tri.setAttribute('points',
+                        `${bus.cx},${ly0} ${bus.cx-13},${ly0+22} ${bus.cx+13},${ly0+22}`);
+                    tri.setAttribute('fill', bc); tri.setAttribute('opacity','0.85');
+                    g.appendChild(tri);
+                }
+
+                // Data callout box
+                const cbg = document.createElementNS(ns, 'rect');
+                cbg.setAttribute('x', bus.calx);  cbg.setAttribute('y', bus.caly);
+                cbg.setAttribute('width','84');   cbg.setAttribute('height','50');
+                cbg.setAttribute('rx','4');
+                cbg.setAttribute('fill','rgba(8,15,26,0.92)');
+                cbg.setAttribute('stroke', bc);   cbg.setAttribute('stroke-width','1');
+                g.appendChild(cbg);
+
+                const chd = document.createElementNS(ns, 'text');
+                chd.setAttribute('x', bus.calx+42); chd.setAttribute('y', bus.caly+12);
+                chd.setAttribute('text-anchor','middle');
+                chd.setAttribute('font-size','9.5'); chd.setAttribute('font-weight','bold');
+                chd.setAttribute('fill', bc);
+                chd.textContent = bus.type==='GEN' ? `GEN-${bus.id}` :
+                                  bus.type==='LOAD' ? `LD-${bus.id}` : `TX-${bus.id}`;
+                g.appendChild(chd);
+
+                const mkRow = (id, dy, init) => {
+                    const txt = document.createElementNS(ns, 'text');
+                    txt.setAttribute('id', id);
+                    txt.setAttribute('x', bus.calx+5); txt.setAttribute('y', bus.caly+dy);
+                    txt.setAttribute('font-size','9'); txt.setAttribute('fill','#94a3b8');
+                    txt.textContent = init;
+                    g.appendChild(txt);
+                };
+                mkRow(`sld-v-${bus.id}`, 24, 'V: -- pu');
+                mkRow(`sld-f-${bus.id}`, 35, 'f: -- Hz');
+                mkRow(`sld-p-${bus.id}`, 46, 'P: -- MW');
+
+                nodesLayer.appendChild(g);
+            });
         }
         
-        // Update network topology with live data
+        // ── SCADA SLD live data update ────────────────────────────
         function updateNetworkTopology(data) {
-            const busTypes = ['GEN', 'GEN', 'GEN', 'TRANS', 'LOAD', 'LOAD', 'TRANS', 'LOAD', 'TRANS'];
-            
-            // Update total generation and load
+            // Power balance summary row
             if (data.total_generation_mw !== undefined) {
                 document.getElementById('total-gen').textContent = `${data.total_generation_mw.toFixed(1)} MW`;
             }
             if (data.total_load_mw !== undefined) {
                 document.getElementById('total-load').textContent = `${data.total_load_mw.toFixed(1)} MW`;
-                const balance = data.total_generation_mw - data.total_load_mw;
-                document.getElementById('power-balance').textContent = `${balance >= 0 ? '+' : ''}${balance.toFixed(1)} MW`;
+                const bal = data.total_generation_mw - data.total_load_mw;
+                document.getElementById('power-balance').textContent = `${bal>=0?'+':''}${bal.toFixed(1)} MW`;
             }
-            
-            // Update line flows
-            if (data.lines && data.lines.length > 0) {
-                // Remove existing line flow labels and center arrows
-                document.querySelectorAll('.line-flow-label').forEach(el => el.remove());
-                document.querySelectorAll('.line-center-arrow').forEach(el => el.remove());
-                // Ensure no legacy start/end markers remain on lines
-                document.querySelectorAll('#lines-layer line').forEach(l => {
-                    l.removeAttribute('marker-start');
-                    l.removeAttribute('marker-end');
-                });
-                
-                const svg = document.getElementById('network-svg');
-                const linesLayer = document.getElementById('lines-layer');
-                
-                // Bus positions (same as in init function)
-                const busPositions = [
-                    { x: 100, y: 100 },   // Bus 1
-                    { x: 300, y: 100 },   // Bus 2
-                    { x: 200, y: 50 },    // Bus 3
-                    { x: 80, y: 200 },    // Bus 4
-                    { x: 200, y: 250 },   // Bus 5
-                    { x: 320, y: 200 },   // Bus 6
-                    { x: 100, y: 340 },   // Bus 7
-                    { x: 200, y: 380 },   // Bus 8
-                    { x: 300, y: 340 }    // Bus 9
-                ];
-                
-                data.lines.forEach(line => {
-                    const fromIdx = line.from_bus - 1;
-                    const toIdx = line.to_bus - 1;
-                    
-                    if (fromIdx >= 0 && toIdx >= 0 && fromIdx < busPositions.length && toIdx < busPositions.length) {
-                        const fromPos = busPositions[fromIdx];
-                        const toPos = busPositions[toIdx];
-                        
-                        // Calculate midpoint
-                        const midX = (fromPos.x + toPos.x) / 2;
-                        const midY = (fromPos.y + toPos.y) / 2;
-                        
-                        // Smart positioning: use perpendicular offset with manual adjustments for dense areas
-                        const dx = toPos.x - fromPos.x;
-                        const dy = toPos.y - fromPos.y;
-                        const lineLength = Math.sqrt(dx * dx + dy * dy);
-                        
-                        // Normalized perpendicular vector
-                        const perpX = -dy / lineLength;
-                        const perpY = dx / lineLength;
-                        
-                        // Line-specific positioning to avoid overlaps
-                        // Handle both normal and reversed line directions
-                        const lineKey = `${line.from_bus}-${line.to_bus}`;
-                        const reverseKey = `${line.to_bus}-${line.from_bus}`;
-                        let labelX, labelY;
-                        
-                        // Strategic positioning based on line location
-                        if (lineKey === '1-4' || reverseKey === '1-4') {
-                            // Bus 1->4: left side
-                            labelX = midX - 35;
-                            labelY = midY;
-                        } else if (lineKey === '2-7' || reverseKey === '2-7') {
-                            // Bus 2->7: at the red marked position near Bus 2
-                            labelX = busPositions[1].x + 35;
-                            labelY = busPositions[1].y + 35;
-                        } else if (lineKey === '3-9' || reverseKey === '3-9') {
-                            // Bus 3->9: below Bus 3
-                            labelX = busPositions[2].x;
-                            labelY = busPositions[2].y + 75;
-                        } else if (lineKey === '4-5' || reverseKey === '4-5') {
-                            // Bus 4->5: center of Bus 4 and Bus 5
-                            labelX = midX;
-                            labelY = midY;
-                        } else if (lineKey === '4-6' || reverseKey === '4-6') {
-                            // Bus 4->6: near Bus 4
-                            labelX = busPositions[3].x + 50;
-                            labelY = busPositions[3].y - 15;
-                        } else if (lineKey === '5-7' || reverseKey === '5-7') {
-                            // Bus 5->7: center of Bus 5 and Bus 7
-                            labelX = midX;
-                            labelY = midY;
-                        } else if (lineKey === '6-9' || reverseKey === '6-9') {
-                            // Bus 6->9: right side to avoid Bus 6 labels
-                            labelX = midX + 15;
-                            labelY = midY + 25;
-                        } else if (lineKey === '7-8' || reverseKey === '7-8') {
-                            // Bus 7->8: below line to avoid Bus 7/8 labels
-                            labelX = midX;
-                            labelY = midY + 20;
-                        } else if (lineKey === '8-9' || reverseKey === '8-9') {
-                            // Bus 8->9: center of Bus 8 and Bus 9
-                            labelX = midX;
-                            labelY = midY;
-                        } else {
-                            // Default: perpendicular offset
-                            labelX = midX + perpX * 15;
-                            labelY = midY + perpY * 15;
-                        }
-                        
-                        // Direction arrows removed per user request — no automatic center arrows drawn here.
 
-                        // Create background rectangle for better readability
-                        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                        rect.setAttribute('class', 'line-flow-label');
-                        rect.setAttribute('x', labelX - 18);
-                        rect.setAttribute('y', labelY - 9);
-                        rect.setAttribute('width', '36');
-                        rect.setAttribute('height', '16');
-                        rect.setAttribute('fill', 'rgba(0, 0, 0, 0.75)');
-                        rect.setAttribute('rx', '4');
-                        rect.setAttribute('stroke', '#f59e0b');
-                        rect.setAttribute('stroke-width', '1');
-                        
-                        linesLayer.appendChild(rect);
-                        
-                        // Create text element for power flow
-                        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                        text.setAttribute('class', 'line-flow-label');
-                        text.setAttribute('x', labelX);
-                        text.setAttribute('y', labelY + 4);
-                        text.setAttribute('text-anchor', 'middle');
-                        text.setAttribute('font-size', '10');
-                        text.setAttribute('font-weight', 'bold');
-                        text.setAttribute('fill', '#fbbf24');
-                        
-                        // Display power flow value
-                        text.textContent = `${Math.abs(line.p_mw).toFixed(0)}`;
-                        linesLayer.appendChild(text);
-                    }
+            // ── Per-bus callouts + busbar health colour ───────────
+            if (data.buses) {
+                data.buses.forEach(bus => {
+                    const vEl  = document.getElementById(`sld-v-${bus.bus_id}`);
+                    const fEl  = document.getElementById(`sld-f-${bus.bus_id}`);
+                    const pEl  = document.getElementById(`sld-p-${bus.bus_id}`);
+                    const bar  = document.getElementById(`sld-bar-${bus.bus_id}`);
+                    if (!vEl || !fEl || !pEl || !bar) return;
+
+                    vEl.textContent = `V: ${bus.voltage.toFixed(3)} pu`;
+                    fEl.textContent = `f: ${bus.frequency.toFixed(3)} Hz`;
+                    pEl.textContent = `P: ${bus.power_mw>=0?'+':''}${bus.power_mw.toFixed(1)} MW`;
+
+                    // Busbar colour tracks frequency health
+                    const dev = Math.abs(bus.frequency - 50.0);
+                    let bc;
+                    if      (dev < 0.05)  bc = bus.bus_type==='GEN' ? '#10b981' : bus.bus_type==='LOAD' ? '#ef4444' : '#8b5cf6';
+                    else if (dev < 0.15)  bc = '#f59e0b';
+                    else                  bc = '#dc2626';
+                    bar.setAttribute('fill', bc);
                 });
             }
-            
-            // Update individual bus data
-            if (data.buses) {
-                data.buses.forEach((bus, i) => {
-                    const node = document.getElementById(`node-${i}`);
-                    const freqLabel = document.getElementById(`freq-label-${i}`);
-                    const voltLabel = document.getElementById(`volt-label-${i}`);
-                    const powerLabel = document.getElementById(`power-label-${i}`);
-                    
-                    if (!node || !freqLabel || !voltLabel || !powerLabel) return;
-                    
-                    // Update labels
-                    freqLabel.textContent = `${bus.frequency.toFixed(2)} Hz`;
-                    voltLabel.textContent = `${bus.voltage.toFixed(3)} pu`;
-                    powerLabel.textContent = `${Math.abs(bus.power_mw).toFixed(0)} MW`;
-                    
-                    // Color based on bus type and health
-                    const deviation = Math.abs(bus.frequency - 50.0);
-                    let color;
-                    if (deviation < 0.05) {
-                        color = bus.bus_type === 'GEN' ? '#10b981' : (bus.bus_type === 'LOAD' ? '#ef4444' : '#8b5cf6');
-                    } else if (deviation < 0.1) {
-                        color = '#f59e0b'; // Yellow warning
+
+            // ── Line colours, widths and flow direction animation ─
+            if (data.lines) {
+                data.lines.forEach(ln => {
+                    // Normalise to canonical key (smaller id first)
+                    const a = Math.min(ln.from_bus, ln.to_bus);
+                    const b = Math.max(ln.from_bus, ln.to_bus);
+                    const key    = `${a}-${b}`;
+                    const lineEl = document.getElementById(`sld-line-${key}`);
+                    const lbEl   = document.getElementById(`sld-lb-${key}`);
+                    const lbgEl  = document.getElementById(`sld-lbg-${key}`);
+                    if (!lineEl) return;
+
+                    // Colour + width by loading %
+                    const pct = ln.loading_pct;
+                    let stroke, sw, borderCol;
+                    if (pct < 70) {
+                        stroke = '#10b981'; sw = '2.5'; borderCol = '#10b981';
+                    } else if (pct < 90) {
+                        stroke = '#f59e0b'; sw = '3.5'; borderCol = '#f59e0b';
                     } else {
-                        color = '#dc2626'; // Red alert
+                        stroke = '#ef4444'; sw = '4.5'; borderCol = '#ef4444';
                     }
-                    
-                    node.setAttribute('fill', color);
-                });
-            } else {
-                // Fallback to old format
-                data.freq_bus.forEach((freq, i) => {
-                    const node = document.getElementById(`node-${i}`);
-                    const freqLabel = document.getElementById(`freq-label-${i}`);
-                    const voltLabel = document.getElementById(`volt-label-${i}`);
-                    
-                    if (!freqLabel || !node) return;
-                    
-                    freqLabel.textContent = `${freq.toFixed(2)} Hz`;
-                    if (voltLabel && data.v_stab_index_bus && data.v_stab_index_bus[i]) {
-                        const vsi = data.v_stab_index_bus[i];
-                        const estVoltage = 1.0 - 0.2 * (1.0 - vsi);
-                        voltLabel.textContent = `${estVoltage.toFixed(3)} pu`;
+                    lineEl.setAttribute('stroke',       stroke);
+                    lineEl.setAttribute('stroke-width', sw);
+                    if (lbgEl) lbgEl.setAttribute('stroke', borderCol);
+
+                    // Flow direction animation
+                    // p_mw > 0  → flow is from_bus → to_bus
+                    // canonical key always has smaller id first, so flip sign when from_bus > to_bus
+                    const canonFwd = ln.from_bus <= ln.to_bus;
+                    const flowFwd  = canonFwd ? (ln.p_mw >= 0) : (ln.p_mw < 0);
+                    lineEl.classList.remove('flow-fwd','flow-rev','flow-idle');
+                    if (Math.abs(ln.p_mw) < 0.5)  lineEl.classList.add('flow-idle');
+                    else if (flowFwd)               lineEl.classList.add('flow-fwd');
+                    else                            lineEl.classList.add('flow-rev');
+
+                    // Flow label
+                    if (lbEl) {
+                        lbEl.textContent = `${Math.abs(ln.p_mw).toFixed(0)} MW`;
+                        lbEl.setAttribute('fill', pct >= 90 ? '#ef4444' : '#fbbf24');
                     }
-                    
-                    const deviation = Math.abs(freq - 50.0);
-                    let color;
-                    if (deviation < 0.05) {
-                        color = busTypes[i] === 'GEN' ? '#10b981' : (busTypes[i] === 'LOAD' ? '#ef4444' : '#8b5cf6');
-                    } else if (deviation < 0.1) {
-                        color = '#f59e0b';
-                    } else {
-                        color = '#dc2626';
-                    }
-                    
-                    node.setAttribute('fill', color);
                 });
             }
         }
