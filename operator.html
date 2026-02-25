@@ -2116,8 +2116,14 @@ function applyLiveData(d) {
   // Nowcast (h=0): update BASE[0] directly from live API measurements
   const maxRoCoF = Math.max(...d.rocof_bus.map(r => Math.abs(r)));
   const minFreq  = Math.min(...d.freq_bus);
+  // EKF-estimated inertia and damping — used in nadir, CCT, and sync margin
+  const H_live = (d.H_system != null) ? d.H_system : 4.0;
+  const D_live = (d.D_system != null && d.D_system > 0.05) ? d.D_system : 0.95;
   BASE.freq.rocof[0] = maxRoCoF;
-  BASE.freq.nadir[0] = Math.max(48.5, minFreq - maxRoCoF * 0.25);
+  // Nadir: swing-equation derived — f_nadir ≈ f_now − RoCoF × H/D
+  // (H/D is the inertia-response time constant; replaces the previous
+  //  arbitrary 0.25 s constant that ignored system inertia entirely)
+  BASE.freq.nadir[0] = Math.max(48.5, minFreq - maxRoCoF * (H_live / Math.max(D_live, 0.1)));
   BASE.freq.fm[0]    = Math.max(0, BASE.freq.nadir[0] - 48.8);
 
   const liArr = d.v_stab_index_bus.map(vsi => 1 - vsi);
@@ -2125,9 +2131,14 @@ function applyLiveData(d) {
   const minV  = d.buses ? Math.min(...d.buses.map(b => b.voltage)) : 0.990;
   BASE.volt.li[0]   = avgLI;
   BASE.volt.vmin[0] = minV;
-  BASE.volt.kj[0]   = Math.round(84 * (1 + avgLI * 0.6));
+  // κ(J): proximity-to-voltage-collapse metric = 100 / mean(VSI).
+  // Backend computes this from live EKF VSI state. Fallback mirrors the same formula.
+  // κ≈100 = healthy; κ→∞ as system approaches voltage-collapse bifurcation.
+  BASE.volt.kj[0]   = d.kappa_jacobian ? Math.round(d.kappa_jacobian) : Math.round(100 / Math.max(1 - avgLI, 0.01));
+  // CCT: Equal-Area Criterion gives CCT ∝ √H (not linear H).
+  // Calibrated to IEEE 9-bus ground truth: CCT=218 ms at H=4.5 s.
   if (d.H_system) {
-    BASE.trans.cct[0] = Math.round(218 * (d.H_system / 4.5));
+    BASE.trans.cct[0] = Math.round(218 * Math.sqrt(d.H_system / 4.5));
   }
 
   // Horizons 1–3 (30 s / 2 min / 5 min):
@@ -2137,14 +2148,20 @@ function applyLiveData(d) {
     const tMult  = [1.0, 1.17, 1.58, 1.92];
     const liGrow = [1.0, 1.04, 1.11, 1.19];
     [1,2,3].forEach(h => {
-      BASE.freq.rocof[h] = maxRoCoF * tMult[h];
-      BASE.freq.nadir[h] = Math.max(48.5, minFreq - maxRoCoF * tMult[h] * 0.25);
+      const projRoCoF = maxRoCoF * tMult[h];
+      BASE.freq.rocof[h] = projRoCoF;
+      // Nadir projection: same swing-equation formula with H/D
+      BASE.freq.nadir[h] = Math.max(48.5, minFreq - projRoCoF * (H_live / Math.max(D_live, 0.1)));
       BASE.freq.fm[h]    = Math.max(0, BASE.freq.nadir[h] - 48.8);
       BASE.volt.li[h]    = avgLI * liGrow[h];
       BASE.volt.vmin[h]  = Math.max(0.90, minV - h * 0.003);
-      BASE.volt.kj[h]    = Math.round(84 * (1 + avgLI * 0.6) * (1 + h * 0.12));
+      // κ(J) for future horizons: project collapse-proximity as voltage weakens
+      BASE.volt.kj[h]    = d.kappa_jacobian
+        ? Math.round(d.kappa_jacobian / Math.max(1 - (avgLI * liGrow[h] - avgLI), 0.1))
+        : Math.round(100 / Math.max(1 - avgLI * liGrow[h], 0.01));
+      // CCT: √H stays constant (H is a machine property); scale by projected L-Index
       if (d.H_system) {
-        BASE.trans.cct[h] = Math.round([218, 204, 183, 161][h] * (d.H_system / 4.5));
+        BASE.trans.cct[h] = Math.round([218, 204, 183, 161][h] * Math.sqrt(d.H_system / 4.5));
       }
     });
   }
@@ -2202,13 +2219,15 @@ function applyLiveData(d) {
   // H_system is estimated by the EKF from frequency-response dynamics; the PSAT
   // ground-truth value is ≈ 4.0 s on the 100 MVA aggregate system base (EKF clips [4.0, 6.0] s).
   {
-    const GEN_CAP_MW = 500;   // G1=210 MW + G2=160 MW + G3=130 MW total rated capacity
+    // IEEE 9-bus rated capacities — use backend value if available (forward-compatible
+    // with future systems where generator fleet changes dynamically)
+    const GEN_CAP_MW = d.total_capacity_mw || 500;
     const genMW  = d.total_generation_mw || 330;
     const loadMW = d.total_load_mw       || 315;
-    const H_live = (d.H_system != null) ? d.H_system : 4.0;  // EKF-estimated aggregate inertia [s]
+    const H_live_sync = (d.H_system != null) ? d.H_system : 4.0;  // EKF-estimated aggregate inertia [s]
     const rspin0 = Math.max(0, Math.round((GEN_CAP_MW - genMW) / Math.max(loadMW, 1) * 100));
     const phead0 = Math.max(0, Math.round(GEN_CAP_MW - genMW));
-    BASE.sync.h[0]     = parseFloat(H_live.toFixed(2));
+    BASE.sync.h[0]     = parseFloat(H_live_sync.toFixed(2));
     BASE.sync.rspin[0] = rspin0;
     BASE.sync.phead[0] = phead0;
     // Horizons 1–3: H is a machine property so stays constant; reserve degrades with load growth
