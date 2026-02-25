@@ -677,7 +677,7 @@
     <div class="horizon-tile">
       <span class="h-label">5 min</span>
       <span class="chip chip-amber">MEDIUM</span>
-      <span class="h-desc">SCR margin tightening · IBR pen. 37%</span>
+      <span class="h-desc">SCR margin tightening · IBR pen. 0%</span>
     </div>
   </div>
 
@@ -918,7 +918,7 @@
               <span class="metric-val">
                 <span class="tooltip-wrap">PLL margin: 0.41<i class="info-icon"> ℹ</i><span class="tip">PLL phase-margin. Warn &lt; 0.30. Indicates GFL inverter synchronisation robustness.</span></span>
               </span>
-              <span class="metric-val">IBR pen.: 35%</span>
+              <span class="metric-val">IBR pen.: 0%</span>
             </div>
           </td>
           <td>
@@ -927,7 +927,7 @@
               <span class="metric-val">SCR: 3.3</span>
               <span class="metric-val">WSCR: 2.8</span>
               <span class="metric-val">PLL margin: 0.39</span>
-              <span class="metric-val">IBR pen.: 35%</span>
+              <span class="metric-val">IBR pen.: 0%</span>
             </div>
           </td>
           <td>
@@ -936,7 +936,7 @@
               <span class="metric-val">SCR: 3.1</span>
               <span class="metric-val">WSCR: 2.6</span>
               <span class="metric-val">PLL margin: 0.34</span>
-              <span class="metric-val">IBR pen.: 37%</span>
+              <span class="metric-val">IBR pen.: 0%</span>
             </div>
           </td>
           <td>
@@ -945,7 +945,7 @@
               <span class="metric-val">SCR: 2.9</span>
               <span class="metric-val">WSCR: 2.4</span>
               <span class="metric-val">PLL margin: 0.31</span>
-              <span class="metric-val">IBR pen.: 38%</span>
+              <span class="metric-val">IBR pen.: 0%</span>
             </div>
           </td>
         </tr>
@@ -1887,7 +1887,7 @@ function buildMatrix() {
         const pll  = BASE.ibr.pll[h].toFixed(2);
         const lvl  = getLevel('ibr', h);
         const ltag = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
-        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">SCR: ${scr}${ltag}<i class="info-icon"> ℹ</i><span class="tip">Short-Circuit Ratio at IBR point of common coupling. Warn &lt; 3.0, Crit &lt; 2.0.</span></span></span><span class="metric-val"><span class="tooltip-wrap">WSCR: ${wscr}<i class="info-icon"> ℹ</i><span class="tip">Weighted Short-Circuit Ratio accounting for multiple IBRs. More conservative than site SCR.</span></span></span><span class="metric-val"><span class="tooltip-wrap">PLL margin: ${pll}<i class="info-icon"> ℹ</i><span class="tip">PLL phase-margin. Warn &lt; 0.30. Indicates GFL inverter synchronisation robustness.</span></span></span><span class="metric-val"><span class="tooltip-wrap">IBR pen.: ${BASE.ibr.pen[h]}%<i class="info-icon"> ℹ</i><span class="tip">IBR penetration = IBR rated MW ÷ (sync gen MW + IBR rated MW). Computed from live total_generation_mw. IBR-1: 60 MVA, IBR-2: 50 MVA.</span></span></span>`;
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">SCR: ${scr}${ltag}<i class="info-icon"> ℹ</i><span class="tip">Short-Circuit Ratio at IBR point of common coupling. Warn &lt; 3.0, Crit &lt; 2.0.</span></span></span><span class="metric-val"><span class="tooltip-wrap">WSCR: ${wscr}<i class="info-icon"> ℹ</i><span class="tip">Weighted Short-Circuit Ratio accounting for multiple IBRs. More conservative than site SCR.</span></span></span><span class="metric-val"><span class="tooltip-wrap">PLL margin: ${pll}<i class="info-icon"> ℹ</i><span class="tip">PLL phase-margin. Warn &lt; 0.30. Indicates GFL inverter synchronisation robustness.</span></span></span><span class="metric-val"><span class="tooltip-wrap">IBR pen.: ${BASE.ibr.pen[h]}%<i class="info-icon"> ℹ</i><span class="tip">IBR penetration = IBR rated MW ÷ total generation MW. IEEE 9-bus is a conventional synchronous-only system — no IBR units connected.</span></span></span>`;
       })
     },
   ];
@@ -2222,16 +2222,12 @@ function applyLiveData(d) {
     if (ibr1) BASE.ibr.scr[1] = ibr1.scr;  // GFM slot for secondary indicator
   }
 
-  // IBR penetration: IBR-1 (60 MVA) + IBR-2 (50 MVA) = 110 MW rated
-  // pen% = IBR_MW / (sync_gen_MW + IBR_MW) × 100  — updates whenever sync gen changes
+  // IBR penetration: IEEE 9-bus is a conventional synchronous-only system — no IBR
   {
-    const IBR_RATED_MW = 110;
-    const syncGen = d.total_generation_mw || 250;
-    const pen0 = Math.round(IBR_RATED_MW / (syncGen + IBR_RATED_MW) * 100);
-    BASE.ibr.pen[0] = pen0;
-    BASE.ibr.pen[1] = pen0;
-    BASE.ibr.pen[2] = pen0;
-    BASE.ibr.pen[3] = pen0;
+    BASE.ibr.pen[0] = 0;
+    BASE.ibr.pen[1] = 0;
+    BASE.ibr.pen[2] = 0;
+    BASE.ibr.pen[3] = 0;
   }
 
   updateSystemState(d);
