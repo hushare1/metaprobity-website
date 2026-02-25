@@ -1473,22 +1473,20 @@
                     const key    = `${a}-${b}`;
                     const lineEl = document.getElementById(`sld-line-${key}`);
                     const lbEl   = document.getElementById(`sld-lb-${key}`);
-                    const lbgEl  = document.getElementById(`sld-lbg-${key}`);
                     if (!lineEl) return;
 
                     // Colour + width by loading %
                     const pct = ln.loading_pct;
-                    let stroke, sw, borderCol;
+                    let stroke, sw;
                     if (pct < 70) {
-                        stroke = '#10b981'; sw = '2.5'; borderCol = '#10b981';
+                        stroke = '#10b981'; sw = '2.5';
                     } else if (pct < 90) {
-                        stroke = '#f59e0b'; sw = '3.5'; borderCol = '#f59e0b';
+                        stroke = '#f59e0b'; sw = '3.5';
                     } else {
-                        stroke = '#ef4444'; sw = '4.5'; borderCol = '#ef4444';
+                        stroke = '#ef4444'; sw = '4.5';
                     }
                     lineEl.setAttribute('stroke',       stroke);
                     lineEl.setAttribute('stroke-width', sw);
-                    if (lbgEl) lbgEl.setAttribute('stroke', borderCol);
 
                     // Flow direction animation
                     // p_mw > 0  → flow is from_bus → to_bus
