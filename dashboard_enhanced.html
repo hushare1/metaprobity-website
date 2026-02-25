@@ -1287,8 +1287,10 @@
                 const lx = x1 + (x2 - x1) * t;
                 const ly = y1 + (y2 - y1) * t;
                 // 10 px perpendicular offset so label doesn't sit on the line
+                // '4-6' uses the opposite perpendicular to place the label above the line
                 const dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx*dx+dy*dy)||1;
-                const ox = (-dy/len)*11, oy = (dx/len)*11;
+                const flip = (ld.key === '4-6') ? -1 : 1;
+                const ox = flip * (-dy/len)*11, oy = flip * (dx/len)*11;
 
                 const lbg = document.createElementNS(ns, 'rect');
                 lbg.setAttribute('id', `sld-lbg-${ld.key}`);
@@ -1296,7 +1298,7 @@
                 lbg.setAttribute('width','40'); lbg.setAttribute('height','16');
                 lbg.setAttribute('rx','4');
                 lbg.setAttribute('fill','rgba(8,15,26,0.88)');
-                lbg.setAttribute('stroke','#10b981'); lbg.setAttribute('stroke-width','0.8');
+                lbg.setAttribute('stroke','none');
                 lg.appendChild(lbg);
 
                 const lbt = document.createElementNS(ns, 'text');
