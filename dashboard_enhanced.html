@@ -735,8 +735,8 @@
                                 <div id="power-balance" style="font-size: 18px; font-weight: 700; color: var(--primary);">-- MW</div>
                             </div>
                         </div>
-                        <div class="network-container" style="height: 540px;">
-                            <svg class="network-svg" id="network-svg" viewBox="0 0 560 430">
+                        <div class="network-container" style="height: 580px;">
+                            <svg class="network-svg" id="network-svg" viewBox="0 0 820 520">
                                 <g id="lines-layer"></g>
                                 <g id="nodes-layer"></g>
                             </svg>
@@ -1251,17 +1251,20 @@
             // ── Bus layout ───────────────────────────────────────────
             // cx = horizontal centre;  by = top-y of busbar
             // calx/caly = top-left corner of data callout box
+            // Layout: 3 rows — generators (y=110), transformers (y=265), loads/IBR (y=400)
+            //         3 columns — left (x=130), centre (x=400), right (x=660)
+            //         Bus 5 between left+centre; Bus 8 between centre+right
             const BW = 64, BH = 8;
             const buses = [
-                { id:1, cx:100, by:130, type:'GEN',   calx:108, caly:114 },
-                { id:2, cx:280, by:130, type:'GEN',   calx:288, caly:114 },
-                { id:3, cx:460, by:130, type:'GEN',   calx:370, caly:114 },
-                { id:4, cx:100, by:260, type:'TRANS', calx:8,   caly:250 },
-                { id:5, cx:165, by:375, type:'LOAD',  calx:75,  caly:374 },
-                { id:6, cx:280, by:385, type:'LOAD',  calx:193, caly:384, ibr:'IBR-1 (GFM)' },
-                { id:7, cx:280, by:260, type:'TRANS', calx:288, caly:250 },
-                { id:8, cx:395, by:375, type:'LOAD',  calx:403, caly:374 },
-                { id:9, cx:460, by:260, type:'TRANS', calx:370, caly:250, ibr:'IBR-2 (GFL)' },
+                { id:1, cx:130, by:110, type:'GEN',   calx:138, caly:92  },
+                { id:2, cx:400, by:110, type:'GEN',   calx:408, caly:92  },
+                { id:3, cx:660, by:110, type:'GEN',   calx:568, caly:92  },
+                { id:4, cx:130, by:265, type:'TRANS', calx:8,   caly:255 },
+                { id:5, cx:245, by:400, type:'LOAD',  calx:121, caly:390 },
+                { id:6, cx:400, by:400, type:'LOAD',  calx:308, caly:408, ibr:'IBR-1 (GFM)' },
+                { id:7, cx:400, by:265, type:'TRANS', calx:408, caly:255 },
+                { id:8, cx:555, by:400, type:'LOAD',  calx:595, caly:390 },
+                { id:9, cx:660, by:265, type:'TRANS', calx:568, caly:255, ibr:'IBR-2 (GFL)', ibrSide:true },
             ];
             const bcy = b => b.by + BH / 2;  // vertical centre of busbar
 
@@ -1348,19 +1351,37 @@
                 const g  = document.createElementNS(ns, 'g');
                 g.setAttribute('id', `sld-bg-${bus.id}`);
 
-                // IBR: inverter box symbol above busbar
+                // IBR: inverter box symbol — above busbar for LOAD buses, side-mounted for TRANS buses
                 if (bus.ibr) {
-                    const stub = document.createElementNS(ns, 'line');
-                    stub.setAttribute('x1', bus.cx); stub.setAttribute('y1', bus.by - 36);
-                    stub.setAttribute('x2', bus.cx); stub.setAttribute('y2', bus.by);
-                    stub.setAttribute('stroke', '#f59e0b'); stub.setAttribute('stroke-width','2.5');
-                    g.appendChild(stub);
-                    const u = document.createElementNS(ns, 'use');
-                    u.setAttribute('href','#sym-ibr');
-                    u.setAttribute('x', bus.cx-22); u.setAttribute('y', bus.by-36-44);
-                    u.setAttribute('width','44');    u.setAttribute('height','44');
-                    u.setAttribute('color', '#f59e0b');
-                    g.appendChild(u);
+                    if (bus.ibrSide) {
+                        // Horizontal stub to the right, symbol at end (avoids transformer circles above)
+                        const sideX = bus.cx + BW/2;
+                        const sideY = bus.by + BH/2;
+                        const stub = document.createElementNS(ns, 'line');
+                        stub.setAttribute('x1', sideX);      stub.setAttribute('y1', sideY);
+                        stub.setAttribute('x2', sideX + 44); stub.setAttribute('y2', sideY);
+                        stub.setAttribute('stroke', '#f59e0b'); stub.setAttribute('stroke-width','2.5');
+                        g.appendChild(stub);
+                        const u = document.createElementNS(ns, 'use');
+                        u.setAttribute('href','#sym-ibr');
+                        u.setAttribute('x', sideX + 44); u.setAttribute('y', sideY - 22);
+                        u.setAttribute('width','44');      u.setAttribute('height','44');
+                        u.setAttribute('color', '#f59e0b');
+                        g.appendChild(u);
+                    } else {
+                        // Vertical stub above busbar
+                        const stub = document.createElementNS(ns, 'line');
+                        stub.setAttribute('x1', bus.cx); stub.setAttribute('y1', bus.by - 36);
+                        stub.setAttribute('x2', bus.cx); stub.setAttribute('y2', bus.by);
+                        stub.setAttribute('stroke', '#f59e0b'); stub.setAttribute('stroke-width','2.5');
+                        g.appendChild(stub);
+                        const u = document.createElementNS(ns, 'use');
+                        u.setAttribute('href','#sym-ibr');
+                        u.setAttribute('x', bus.cx-22); u.setAttribute('y', bus.by-36-44);
+                        u.setAttribute('width','44');    u.setAttribute('height','44');
+                        u.setAttribute('color', '#f59e0b');
+                        g.appendChild(u);
+                    }
                 }
 
                 // Generator: circle-with-G symbol above busbar
@@ -1388,17 +1409,19 @@
                 bar.setAttribute('rx','3'); bar.setAttribute('fill', bc);
                 g.appendChild(bar);
 
-                // Bus ID label
-                const lbl = document.createElementNS(ns, 'text');
-                const lblY = (bus.type==='GEN' || bus.ibr)
-                    ? bus.by - 36 - 52
-                    : bus.by + BH + (bus.type==='LOAD' ? 46 : 18);
-                lbl.setAttribute('x', bus.cx); lbl.setAttribute('y', lblY);
-                lbl.setAttribute('text-anchor','middle');
-                lbl.setAttribute('font-size','11'); lbl.setAttribute('font-weight','bold');
-                lbl.setAttribute('fill','#e2e8f0');
-                lbl.textContent = `B${bus.id}`;
-                g.appendChild(lbl);
+                // Bus ID label — suppressed for IBR buses (callout already identifies them)
+                if (!bus.ibr) {
+                    const lbl = document.createElementNS(ns, 'text');
+                    const lblY = bus.type==='GEN'
+                        ? bus.by - 36 - 52
+                        : bus.by + BH + (bus.type==='LOAD' ? 46 : 18);
+                    lbl.setAttribute('x', bus.cx); lbl.setAttribute('y', lblY);
+                    lbl.setAttribute('text-anchor','middle');
+                    lbl.setAttribute('font-size','11'); lbl.setAttribute('font-weight','bold');
+                    lbl.setAttribute('fill','#e2e8f0');
+                    lbl.textContent = `B${bus.id}`;
+                    g.appendChild(lbl);
+                }
 
                 // Load: inverted triangle below busbar + connecting stub (skip for IBR buses)
                 if (bus.type === 'LOAD' && !bus.ibr) {
