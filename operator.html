@@ -900,52 +900,48 @@
           </td>
         </tr>
 
-        <!-- Row: IBR Integration -->
+        <!-- Row: Synchronous Margin -->
         <tr>
           <td>
-            <span class="dimension-label">☀️ IBR Integration</span>
-            <span class="dimension-sub">SCR · WSCR · PLL · IBR%</span>
+            <span class="dimension-label">⚙️ Sync. Margin</span>
+            <span class="dimension-sub">H_sys · Rspin · Headroom</span>
           </td>
           <td>
             <div class="matrix-cell">
               <span class="chip chip-green">LOW</span>
               <span class="metric-val">
-                <span class="tooltip-wrap">SCR: 3.4<i class="info-icon"> ℹ</i><span class="tip">Short-Circuit Ratio at IBR point of common coupling. Warn &lt; 3.0, Crit &lt; 2.0.</span></span>
+                <span class="tooltip-wrap">H_sys: 13.1 s<i class="info-icon"> ℹ</i><span class="tip">System inertia constant (IEEE 9-bus composite of all three synchronous machines). Higher H = slower frequency decline after loss of generation. Warn &lt; 3.0 s, Crit &lt; 1.5 s.</span></span>
               </span>
               <span class="metric-val">
-                <span class="tooltip-wrap">WSCR: 2.9<i class="info-icon"> ℹ</i><span class="tip">Weighted Short-Circuit Ratio accounting for multiple IBRs. More conservative than site SCR.</span></span>
+                <span class="tooltip-wrap">Rspin: 54%<i class="info-icon"> ℹ</i><span class="tip">Spinning reserve = (online capacity − dispatch) ÷ system load × 100. Warn &lt; 20%, Crit &lt; 5%.</span></span>
               </span>
               <span class="metric-val">
-                <span class="tooltip-wrap">PLL margin: 0.41<i class="info-icon"> ℹ</i><span class="tip">PLL phase-margin. Warn &lt; 0.30. Indicates GFL inverter synchronisation robustness.</span></span>
+                <span class="tooltip-wrap">Headroom: 170 MW<i class="info-icon"> ℹ</i><span class="tip">Remaining dispatchable generation headroom = total online capacity − current dispatch.</span></span>
               </span>
-              <span class="metric-val">IBR pen.: 0%</span>
             </div>
           </td>
           <td>
             <div class="matrix-cell">
               <span class="chip chip-green">LOW</span>
-              <span class="metric-val">SCR: 3.3</span>
-              <span class="metric-val">WSCR: 2.8</span>
-              <span class="metric-val">PLL margin: 0.39</span>
-              <span class="metric-val">IBR pen.: 0%</span>
+              <span class="metric-val">H_sys: 13.1 s</span>
+              <span class="metric-val">Rspin: 52%</span>
+              <span class="metric-val">Headroom: 163 MW</span>
             </div>
           </td>
           <td>
             <div class="matrix-cell">
-              <span class="chip chip-amber">MEDIUM</span>
-              <span class="metric-val">SCR: 3.1</span>
-              <span class="metric-val">WSCR: 2.6</span>
-              <span class="metric-val">PLL margin: 0.34</span>
-              <span class="metric-val">IBR pen.: 0%</span>
+              <span class="chip chip-green">LOW</span>
+              <span class="metric-val">H_sys: 13.0 s</span>
+              <span class="metric-val">Rspin: 49%</span>
+              <span class="metric-val">Headroom: 153 MW</span>
             </div>
           </td>
           <td>
             <div class="matrix-cell">
-              <span class="chip chip-amber">MEDIUM</span>
-              <span class="metric-val">SCR: 2.9</span>
-              <span class="metric-val">WSCR: 2.4</span>
-              <span class="metric-val">PLL margin: 0.31</span>
-              <span class="metric-val">IBR pen.: 0%</span>
+              <span class="chip chip-green">LOW</span>
+              <span class="metric-val">H_sys: 13.0 s</span>
+              <span class="metric-val">Rspin: 45%</span>
+              <span class="metric-val">Headroom: 140 MW</span>
             </div>
           </td>
         </tr>
@@ -1370,13 +1366,7 @@ function genRiskFromLive(g) {
     if (z0 < 7.0) return 'MEDIUM';
     return 'LOW';
   }
-  if (g.id === 'IBR-2') {
-    const pll0 = BASE.ibr.pll[0];
-    if (pll0 < CONFIG.PLL_MARGIN_WARN) return 'HIGH';
-    if (pll0 < 0.40) return 'MEDIUM';
-    return 'LOW';
-  }
-  return g.risk; // G1, IBR-1 static (always LOW)
+  return g.risk; // Synchronous generators only — no IBR units in IEEE 9-bus
 }
 
 function busRiskFromLive(b) {
@@ -1609,16 +1599,16 @@ const BASE = {
   volt:  { li:[0.47,0.49,0.52,0.56],    vmin:[0.996,0.994,0.991,0.988],  kj:[84,88,101,114] },
   trans: { cct:[218,204,183,161],        mrad:[22.4,25.1,29.8,34.7],      tsi:[0.72,0.67,0.58,0.43] },
   osc:   { fosc:[0.25,0.25,0.24,0.24],  zeta:[8.5,8.2,7.8,7.2],          ts:[38.2,40.1,43.6,46.8] },
-  ibr:   { scr:[4.2,4.1,3.9,3.8],       wscr:[3.6,3.5,3.3,3.2],          pll:[0.52,0.50,0.48,0.46], pen:[30,31,32,33] },
+  sync:  { h:[13.1,13.1,13.0,13.0], rspin:[54,52,49,45], phead:[170,163,153,140] },
 };
 
 const DELTA_RULES = {
-  gen_trip:    { rocof:+0.08, nadir:-0.15, li:+0.05, cct:-12,  zeta:-0.3, scr:-0.05, pll:-0.02 },
-  line_outage: { rocof:+0.03, nadir:-0.06, li:+0.08, cct:-18,  zeta:-0.2, scr:-0.15, pll:-0.03 },
-  load_change: { rocof:+0.02, nadir:-0.04, li:+0.04, cct:-6,   zeta:-0.2, scr:+0.00, pll:+0.00 },
-  ibr_curtail: { rocof:+0.04, nadir:-0.08, li:+0.02, cct:-5,   zeta:-0.1, scr:-0.20, pll:-0.03 },
-  bess_inject: { rocof:-0.05, nadir:+0.10, li:-0.03, cct:+10,  zeta:+0.4, scr:+0.10, pll:+0.02 },
-  demand_resp: { rocof:-0.02, nadir:+0.05, li:-0.04, cct:+8,   zeta:+0.3, scr:+0.05, pll:+0.01 },
+  gen_trip:    { rocof:+0.08, nadir:-0.15, li:+0.05, cct:-12,  zeta:-0.3, rspin:-6,  phead:-20 },
+  line_outage: { rocof:+0.03, nadir:-0.06, li:+0.08, cct:-18,  zeta:-0.2, rspin:-2,  phead:-5  },
+  load_change: { rocof:+0.02, nadir:-0.04, li:+0.04, cct:-6,   zeta:-0.2, rspin:-4,  phead:-12 },
+  ibr_curtail: { rocof:+0.04, nadir:-0.08, li:+0.02, cct:-5,   zeta:-0.1, rspin: 0,  phead:  0 },
+  bess_inject: { rocof:-0.05, nadir:+0.10, li:-0.03, cct:+10,  zeta:+0.4, rspin:+3,  phead:+10 },
+  demand_resp: { rocof:-0.02, nadir:+0.05, li:-0.04, cct:+8,   zeta:+0.3, rspin:+3,  phead:+10 },
 };
 
 function getLevel(row, h) {
@@ -1651,11 +1641,12 @@ function getLevel(row, h) {
     if (z < 0.06) return 'MEDIUM';
     return 'LOW';
   }
-  if (row === 'ibr') {
-    const scr = BASE.ibr.scr[h];
-    if (scr < CONFIG.SCR_CRIT) return 'CRITICAL';
-    if (scr < CONFIG.SCR_WARN) return 'HIGH';
-    if (scr < 3.5) return 'MEDIUM';
+  if (row === 'sync') {
+    const rspin = BASE.sync.rspin[h];
+    const H     = BASE.sync.h[h];
+    if (H < 1.5 || rspin < 5)  return 'CRITICAL';
+    if (H < 3.0 || rspin < 10) return 'HIGH';
+    if (rspin < 20)             return 'MEDIUM';
     return 'LOW';
   }
   return 'LOW';
@@ -1753,20 +1744,20 @@ function runScenario() {
       })
     },
     {
-      label: '☀️ IBR Integration', sub: 'SCR · WSCR · PLL',
+      label: '⚙️ Sync. Margin', sub: 'H_sys · Rspin · Headroom',
       cells: horizons.map((_, h) => {
-        const hs = hScale[h] * scale;
-        const scr = (BASE.ibr.scr[h] + (d.scr||0)*hs).toFixed(2);
-        const pll = (BASE.ibr.pll[h] + (d.pll||0)*hs).toFixed(2);
+        const hs    = hScale[h] * scale;
+        const rspin = Math.max(0, BASE.sync.rspin[h] + (d.rspin||0)*hs).toFixed(0);
+        const phead = Math.max(0, BASE.sync.phead[h] + (d.phead||0)*hs).toFixed(0);
 
         let lvl = 'LOW';
-        if (parseFloat(scr) < CONFIG.SCR_CRIT) lvl = 'CRITICAL';
-        else if (parseFloat(scr) < CONFIG.SCR_WARN) lvl = 'HIGH';
-        else if (parseFloat(scr) < 3.5) lvl = 'MEDIUM';
+        if (parseFloat(rspin) < 5)  lvl = 'CRITICAL';
+        else if (parseFloat(rspin) < 10) lvl = 'HIGH';
+        else if (parseFloat(rspin) < 20) lvl = 'MEDIUM';
 
-        const worse = parseFloat(scr) < BASE.ibr.scr[h];
+        const worse = parseFloat(rspin) < BASE.sync.rspin[h];
         const cls = worse ? 'sim-delta-worse' : 'sim-delta-same';
-        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px"><span class="tooltip-wrap">SCR: ${scr}<i class="info-icon"> ℹ</i><span class="tip">Short-Circuit Ratio at IBR point of common coupling. Warn &lt; 3.0, Crit &lt; 2.0.</span></span></span><br><span class="${cls}" style="font-size:11px"><span class="tooltip-wrap">PLL: ${pll}<i class="info-icon"> ℹ</i><span class="tip">PLL phase-margin. Warn &lt; 0.30. Indicates GFL inverter synchronisation robustness.</span></span></span>`;
+        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px"><span class="tooltip-wrap">Rspin: ${rspin}%<i class="info-icon"> ℹ</i><span class="tip">Spinning reserve. Warn &lt; 20%, Crit &lt; 5%.</span></span></span><br><span class="${cls}" style="font-size:11px"><span class="tooltip-wrap">Headroom: ${phead} MW<i class="info-icon"> ℹ</i><span class="tip">Remaining dispatchable headroom above current dispatch.</span></span></span>`;
       })
     },
   ];
@@ -1797,7 +1788,8 @@ function runScenario() {
   const predRoCoF = (BASE.freq.rocof[3] + (d.rocof||0)*hScale[3]*scale).toFixed(2);
   const predNadir = (BASE.freq.nadir[3] + (d.nadir||0)*hScale[3]*scale).toFixed(2);
   const predLI    = (BASE.volt.li[3]    + (d.li||0)*hScale[3]*scale).toFixed(2);
-  const predSCR   = (BASE.ibr.scr[3]   + (d.scr||0)*hScale[3]*scale).toFixed(2);
+  const predRspin = Math.max(0, BASE.sync.rspin[3] + (d.rspin||0)*hScale[3]*scale).toFixed(0);
+  const predPhead = Math.max(0, BASE.sync.phead[3] + (d.phead||0)*hScale[3]*scale).toFixed(0);
 
   const summaryEl = document.getElementById('sim-summary-text');
   summaryEl.innerHTML = `
@@ -1811,8 +1803,8 @@ function runScenario() {
       <li>Voltage: projected L-Index <strong>${predLI}</strong>
         ${parseFloat(predLI) >= CONFIG.L_INDEX_WARN ? ' — <span style="color:var(--red)">exceeds warn threshold!</span>' : ''}
       </li>
-      <li>IBR: projected SCR <strong>${predSCR}</strong>
-        ${parseFloat(predSCR) < CONFIG.SCR_WARN ? ' — <span style="color:var(--amber)">below SCR warn threshold</span>' : ''}
+      <li>Sync. reserve: projected Rspin <strong>${predRspin}%</strong>, headroom <strong>${predPhead} MW</strong>
+        ${parseFloat(predRspin) < 20 ? ' — <span style="color:var(--amber)">below reserve warn threshold</span>' : ''}
       </li>
     </ul>
     <span style="color:var(--amber);font-size:12px;display:block;margin-top:8px">⚠ This is a rule-based simulation only. Validate all projections in full dynamic simulation tool before acting. Act via SCADA.</span>
@@ -1880,14 +1872,14 @@ function buildMatrix() {
       })
     },
     {
-      label: '☀️ IBR Integration', sub: 'SCR · WSCR · PLL · IBR%',
+      label: '⚙️ Sync. Margin', sub: 'H_sys · Rspin · Headroom',
       cells: [0,1,2,3].map(h => {
-        const scr  = BASE.ibr.scr[h].toFixed(1);
-        const wscr = BASE.ibr.wscr[h].toFixed(1);
-        const pll  = BASE.ibr.pll[h].toFixed(2);
-        const lvl  = getLevel('ibr', h);
-        const ltag = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
-        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">SCR: ${scr}${ltag}<i class="info-icon"> ℹ</i><span class="tip">Short-Circuit Ratio at IBR point of common coupling. Warn &lt; 3.0, Crit &lt; 2.0.</span></span></span><span class="metric-val"><span class="tooltip-wrap">WSCR: ${wscr}<i class="info-icon"> ℹ</i><span class="tip">Weighted Short-Circuit Ratio accounting for multiple IBRs. More conservative than site SCR.</span></span></span><span class="metric-val"><span class="tooltip-wrap">PLL margin: ${pll}<i class="info-icon"> ℹ</i><span class="tip">PLL phase-margin. Warn &lt; 0.30. Indicates GFL inverter synchronisation robustness.</span></span></span><span class="metric-val"><span class="tooltip-wrap">IBR pen.: ${BASE.ibr.pen[h]}%<i class="info-icon"> ℹ</i><span class="tip">IBR penetration = IBR rated MW ÷ total generation MW. IEEE 9-bus is a conventional synchronous-only system — no IBR units connected.</span></span></span>`;
+        const Hs    = BASE.sync.h[h].toFixed(1);
+        const rspin = BASE.sync.rspin[h].toFixed(0);
+        const phead = BASE.sync.phead[h].toFixed(0);
+        const lvl   = getLevel('sync', h);
+        const ltag  = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">H_sys: ${Hs} s${ltag}<i class="info-icon"> ℹ</i><span class="tip">System inertia constant (composite of all synchronous machines). Higher H = slower frequency decline after loss of generation. Warn &lt; 3.0 s, Crit &lt; 1.5 s.</span></span></span><span class="metric-val"><span class="tooltip-wrap">Rspin: ${rspin}%<i class="info-icon"> ℹ</i><span class="tip">Spinning reserve = (online capacity − dispatch) ÷ system load × 100. Warn &lt; 20%, Crit &lt; 5%.</span></span></span><span class="metric-val"><span class="tooltip-wrap">Headroom: ${phead} MW<i class="info-icon"> ℹ</i><span class="tip">Remaining dispatchable generation headroom = total online capacity − current dispatch.</span></span></span>`;
       })
     },
   ];
@@ -1904,7 +1896,7 @@ function buildMatrix() {
 function buildHorizonTiles() {
   const ht = document.getElementById('horizon-tiles');
   if (!ht) return;
-  const hKeys = ['freq','volt','trans','osc','ibr'];
+  const hKeys = ['freq','volt','trans','osc','sync'];
   const LEVELS = ['LOW','MEDIUM','HIGH','CRITICAL'];
   const labels = ['1 sec','30 sec','2 min','5 min'];
   ht.innerHTML = labels.map((label, h) => {
@@ -1939,7 +1931,7 @@ function buildHorizonTiles() {
         '',
         `Voltage L-Index ${BASE.volt.li[1].toFixed(2)} &middot; All buses in range`,
         `L-Index trending ↑ ${BASE.volt.li[2].toFixed(2)} &middot; Bus 5 watch`,
-        `SCR ${BASE.ibr.scr[3].toFixed(1)} &middot; PLL margin ${BASE.ibr.pll[3].toFixed(2)}`,
+        `Rspin ${BASE.sync.rspin[3]}% · Headroom ${BASE.sync.phead[3]} MW`,
       ];
       desc = staticDescs[h];
     }
@@ -2012,21 +2004,21 @@ function buildActionsPanel() {
       body:`Estimated inertia below 3.5 s — grid more susceptible to frequency excursions. <em>Avoid tripping synchronous generators. Consider enabling virtual inertia on grid-forming IBRs.</em>` });
   }
 
-  // --- IBR SCR (5-min horizon) ---
-  const scr5 = BASE.ibr.scr[3];
-  const pll5 = BASE.ibr.pll[3];
-  if (scr5 < CONFIG.SCR_CRIT) {
-    actions.push({ level:'CRITICAL', icon:'☀️', loc:'IBR · SCR',
-      title:`SCR critical at 5-min horizon: ${scr5.toFixed(1)}.`,
-      body:`SCR below ${CONFIG.SCR_CRIT} — IBR PLL stability at risk. <em>Curtail IBR output or despatch synchronous reserve to strengthen SCR via SCADA.</em>` });
-  } else if (scr5 < CONFIG.SCR_WARN) {
-    actions.push({ level:'HIGH', icon:'☀️', loc:'IBR · SCR / PLL',
-      title:`SCR tightening to ${scr5.toFixed(1)} at 5-min horizon.`,
-      body:`SCR approaching warn threshold (${CONFIG.SCR_WARN}). PLL margin ${pll5.toFixed(2)}. <em>Verify IBR-2 current limiter is active. Consider limiting IBR ramp rate if SCR approaches 2.5.</em>` });
-  } else if (pll5 < CONFIG.PLL_MARGIN_WARN) {
-    actions.push({ level:'MEDIUM', icon:'☀️', loc:'IBR-2 · PLL',
-      title:`IBR-2 PLL margin trending low: ${pll5.toFixed(2)}.`,
-      body:`PLL synchronisation margin approaching warn limit (${CONFIG.PLL_MARGIN_WARN}). <em>Monitor IBR-2 at Bus 9. Verify PLL bandwidth settings in SCADA.</em>` });
+  // --- Synchronous reserve actions (5-min horizon) ---
+  const rspin5 = BASE.sync.rspin[3];
+  const phead5 = BASE.sync.phead[3];
+  if (rspin5 < 5) {
+    actions.push({ level:'CRITICAL', icon:'⚙️', loc:'System · Reserve',
+      title:`Spinning reserve critical at 5-min horizon: ${rspin5}%.`,
+      body:`Reserve below 5% — N-1 loss of largest unit may cause frequency collapse. <em>Urgent: despatch fast-start peaking unit or shed controllable load via SCADA before next contingency window.</em>` });
+  } else if (rspin5 < 10) {
+    actions.push({ level:'HIGH', icon:'⚙️', loc:'System · Reserve',
+      title:`Spinning reserve low at 5-min horizon: ${rspin5}%.`,
+      body:`Reserve approaching critical threshold. Headroom: ${phead5} MW. <em>Notify dispatch desk. Prepare fast-start reserve. Avoid further generation commitment reductions.</em>` });
+  } else if (rspin5 < 20) {
+    actions.push({ level:'MEDIUM', icon:'⚙️', loc:'System · Reserve',
+      title:`Spinning reserve tightening: ${rspin5}% at 5-min horizon.`,
+      body:`Headroom ${phead5} MW. Within normal range but trending down. <em>Monitor and ensure at least one fast-response unit is in spinning-reserve service.</em>` });
   }
 
   // --- Oscillation damping ---
@@ -2205,29 +2197,27 @@ function applyLiveData(d) {
     }
   }
 
-  // --- Network analysis: update BASE.ibr from live Thevenin SCR & PLL margin ---
-  // SCR = V²/(Z_eff × S_rated) is recomputed every EKF tick with live bus voltages.
-  if (d.network) {
-    const ibr2 = d.network['IBR-2'];
-    const ibr1 = d.network['IBR-1'];
-    if (ibr2) {
-      BASE.ibr.scr[0] = ibr2.scr;
-      BASE.ibr.pll[0] = ibr2.pll_margin;
-    }
-    if (ibr1 && ibr2) {
-      // Weighted SCR: (SCR_1×S_1 + SCR_2×S_2) / (S_1 + S_2) on 100 MVA base
-      const s1 = 0.60, s2 = 0.50;
-      BASE.ibr.wscr[0] = parseFloat(((ibr1.scr * s1 + ibr2.scr * s2) / (s1 + s2)).toFixed(2));
-    }
-    if (ibr1) BASE.ibr.scr[1] = ibr1.scr;  // GFM slot for secondary indicator
-  }
-
-  // IBR penetration: IEEE 9-bus is a conventional synchronous-only system — no IBR
+  // --- Synchronous Margin: update BASE.sync from live generation/load data ---
+  // IEEE 9-bus has only synchronous generators — track H_sys, spinning reserve and headroom.
+  // Machine inertia constants (standard IEEE 9-bus): H1=23.64 s/247.5 MVA, H2=6.40 s/192 MVA, H3=3.01 s/128 MVA
+  // H_sys = Σ(Hi·Si)/Σ(Si) = 13.1 s (constant machine property; does not vary with dispatch)
   {
-    BASE.ibr.pen[0] = 0;
-    BASE.ibr.pen[1] = 0;
-    BASE.ibr.pen[2] = 0;
-    BASE.ibr.pen[3] = 0;
+    const GEN_CAP_MW = 500;   // G1=210 MW + G2=160 MW + G3=130 MW total rated capacity
+    const H_SYS     = 13.1;  // Composite inertia constant (≈ constant)
+    const genMW  = d.total_generation_mw || 330;
+    const loadMW = d.total_load_mw       || 315;
+    const rspin0 = Math.max(0, Math.round((GEN_CAP_MW - genMW) / Math.max(loadMW, 1) * 100));
+    const phead0 = Math.max(0, Math.round(GEN_CAP_MW - genMW));
+    BASE.sync.h[0]     = H_SYS;
+    BASE.sync.rspin[0] = rspin0;
+    BASE.sync.phead[0] = phead0;
+    // Horizons 1–3: gentle degradation assuming ~1–2% load growth per horizon
+    const decayR = [0, 2, 5, 9];   // % points of rspin reduction per horizon step
+    const decayP = [0, 7, 17, 30]; // MW headroom reduction per horizon step
+    for (let i = 1; i < 4; i++) {
+      BASE.sync.rspin[i] = Math.max(0, rspin0 - decayR[i]);
+      BASE.sync.phead[i] = Math.max(0, phead0 - decayP[i]);
+    }
   }
 
   updateSystemState(d);
