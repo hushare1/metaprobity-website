@@ -1008,6 +1008,9 @@
                 options: {
                     ...chartOptions,
                     indexAxis: 'x',
+                    layout: {
+                        padding: { left: 0, right: 8, top: 4, bottom: 0 }
+                    },
                     plugins: {
                         ...chartOptions.plugins,
                         legend: {
@@ -1026,7 +1029,7 @@
                             grid: { display: false },
                             ticks: { 
                                 color: getComputedStyle(document.documentElement).getPropertyValue('--text-primary'),
-                                font: { size: 13, weight: 'bold' }
+                                font: { size: 12, weight: 'bold' }
                             }
                         },
                         y: {
@@ -1055,6 +1058,10 @@
                                 lineWidth: function(context) {
                                     return context.tick.value === 0 ? 2 : 1;
                                 }
+                            },
+                            afterFit: (scale) => {
+                                // Reduce the width reserved for the Y axis so bars start closer to the left edge
+                                scale.width = 68;
                             }
                         }
                     }
@@ -1909,9 +1916,10 @@
                 if (metric.currentDev > 20) reasonParts.push('High Dev');
                 if (metric.oscillation > 3) reasonParts.push('Oscillating');
                 if (metric.differenceFromAvg > 5) reasonParts.push('Outlier');
-                const reason = reasonParts.length > 0 ? ` (${reasonParts.join(', ')})` : '';
+                const reasonStr = reasonParts.length > 0 ? `(${reasonParts.join(', ')})` : '';
                 
-                barLabels.push(`Bus ${busIdx + 1}${reason}`);
+                // Use array label so Chart.js renders bus name and reason on separate lines
+                barLabels.push(reasonStr ? [`Bus ${busIdx + 1}`, reasonStr] : [`Bus ${busIdx + 1}`]);
                 barData.push(dev);
                 
                 // Color based on severity
