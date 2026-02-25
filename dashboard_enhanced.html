@@ -1275,10 +1275,10 @@
                 { id:3, cx:660, by:110, type:'GEN',   calx:568, caly:92  },
                 { id:4, cx:130, by:265, type:'TRANS', calx:8,   caly:255 },
                 { id:5, cx:245, by:400, type:'LOAD',  calx:121, caly:390 },
-                { id:6, cx:400, by:400, type:'LOAD',  calx:308, caly:408, ibr:'IBR-1 (GFM)' },
+                { id:6, cx:400, by:400, type:'LOAD',  calx:308, caly:408, ibr:'IBR-1 (GFM)', ibrMW:60 },
                 { id:7, cx:400, by:265, type:'TRANS', calx:408, caly:255 },
                 { id:8, cx:555, by:400, type:'LOAD',  calx:595, caly:390 },
-                { id:9, cx:660, by:265, type:'TRANS', calx:568, caly:255, ibr:'IBR-2 (GFL)', ibrSide:true },
+                { id:9, cx:660, by:265, type:'TRANS', calx:568, caly:255, ibr:'IBR-2 (GFL)', ibrSide:true, ibrMW:50 },
             ];
             const bcy = b => b.by + BH / 2;  // vertical centre of busbar
 
@@ -1417,26 +1417,27 @@
                         stub.setAttribute('stroke', '#f59e0b'); stub.setAttribute('stroke-width','2.5');
                         stub.setAttribute('marker-end', 'url(#ibr-arrow)');
                         g.appendChild(stub);
+                        const symTop = bus.by - 36 - 44;
                         const u = document.createElementNS(ns, 'use');
                         u.setAttribute('href','#sym-ibr');
-                        u.setAttribute('x', bus.cx-22); u.setAttribute('y', bus.by-36-44);
+                        u.setAttribute('x', bus.cx-22); u.setAttribute('y', symTop);
                         u.setAttribute('width','44');    u.setAttribute('height','44');
                         u.setAttribute('color', '#f59e0b');
                         g.appendChild(u);
-                        // MW flow label to the LEFT of the vertical stub (avoids 6-9 label on the right)
+                        // MW flow label BELOW the symbol box
                         const flbg = document.createElementNS(ns, 'rect');
-                        flbg.setAttribute('x', bus.cx-50); flbg.setAttribute('y', bus.by-22);
+                        flbg.setAttribute('x', bus.cx-22); flbg.setAttribute('y', symTop+46);
                         flbg.setAttribute('width','44'); flbg.setAttribute('height','15');
                         flbg.setAttribute('rx','3'); flbg.setAttribute('fill','rgba(8,15,26,0.88)');
                         flbg.setAttribute('stroke','#f59e0b'); flbg.setAttribute('stroke-width','0.7');
                         g.appendChild(flbg);
                         const flt = document.createElementNS(ns, 'text');
                         flt.setAttribute('id', `sld-ibr-p-${bus.id}`);
-                        flt.setAttribute('x', bus.cx-28); flt.setAttribute('y', bus.by-12);
+                        flt.setAttribute('x', bus.cx); flt.setAttribute('y', symTop+57);
                         flt.setAttribute('text-anchor','middle');
                         flt.setAttribute('font-size','9'); flt.setAttribute('font-weight','bold');
                         flt.setAttribute('fill','#f59e0b');
-                        flt.textContent = '-- MW';
+                        flt.textContent = bus.ibrMW ? `${bus.ibrMW} MW` : '-- MW';
                         g.appendChild(flt);
                     }
                 }
@@ -1499,9 +1500,11 @@
                 }
 
                 // Data callout box
+                // IBR buses with co-located load get a taller box to show both IBR gen + load rows
+                const cbgH = bus.ibr && bus.type==='LOAD' ? 62 : 50;
                 const cbg = document.createElementNS(ns, 'rect');
                 cbg.setAttribute('x', bus.calx);  cbg.setAttribute('y', bus.caly);
-                cbg.setAttribute('width','84');   cbg.setAttribute('height','50');
+                cbg.setAttribute('width','84');   cbg.setAttribute('height', cbgH);
                 cbg.setAttribute('rx','4');
                 cbg.setAttribute('fill','rgba(8,15,26,0.92)');
                 cbg.setAttribute('stroke', bus.ibr ? '#f59e0b' : bc);   cbg.setAttribute('stroke-width','1');
@@ -1518,17 +1521,23 @@
                 if (bus.ibr) chd.setAttribute('fill', '#f59e0b');
                 g.appendChild(chd);
 
-                const mkRow = (id, dy, init) => {
+                const mkRow = (id, dy, init, col) => {
                     const txt = document.createElementNS(ns, 'text');
                     txt.setAttribute('id', id);
                     txt.setAttribute('x', bus.calx+5); txt.setAttribute('y', bus.caly+dy);
-                    txt.setAttribute('font-size','9'); txt.setAttribute('fill','#94a3b8');
+                    txt.setAttribute('font-size','9'); txt.setAttribute('fill', col || '#94a3b8');
                     txt.textContent = init;
                     g.appendChild(txt);
                 };
                 mkRow(`sld-v-${bus.id}`, 24, 'V: -- pu');
                 mkRow(`sld-f-${bus.id}`, 35, 'f: -- Hz');
-                mkRow(`sld-p-${bus.id}`, 46, 'P: -- MW');
+                if (bus.ibr && bus.type==='LOAD') {
+                    // Show IBR generation and load as separate rows for KCL clarity
+                    mkRow(`sld-ibr-gen-${bus.id}`, 46, `IBR: ${bus.ibrMW||'--'} MW`, '#f59e0b');
+                    mkRow(`sld-p-${bus.id}`,        57, 'Load: -- MW', '#ef4444');
+                } else {
+                    mkRow(`sld-p-${bus.id}`, 46, 'P: -- MW');
+                }
 
                 nodesLayer.appendChild(g);
             });
@@ -1559,16 +1568,16 @@
 
                     vEl.textContent = `V: ${bus.voltage.toFixed(3)} pu`;
                     fEl.textContent = `f: ${bus.frequency.toFixed(3)} Hz`;
-                    pEl.textContent = `P: ${bus.power_mw>=0?'+':''}${bus.power_mw.toFixed(1)} MW`;
-
-                    // IBR stub flow label (power injected from IBR symbol into bus)
-                    const ibrFlowEl = document.getElementById(`sld-ibr-p-${bus.bus_id}`);
-                    if (ibrFlowEl) {
-                        // power_mw is negative for generators (load-flow convention)
-                        // display as positive injection value on the amber stub
-                        const injMW = Math.abs(bus.power_mw);
-                        ibrFlowEl.textContent = `${injMW.toFixed(1)} MW`;
+                    // For IBR+LOAD buses (B6): power_mw is the net load (negative), show as load consumed
+                    if (pEl.textContent.startsWith('Load:')) {
+                        pEl.textContent = `Load: ${Math.abs(bus.power_mw).toFixed(1)} MW`;
+                    } else {
+                        pEl.textContent = `P: ${bus.power_mw>=0?'+':''}${bus.power_mw.toFixed(1)} MW`;
                     }
+
+                    // IBR stub flow label — shows fixed rated MW (IBR gen is not in bus.power_mw)
+                    // The sld-ibr-p label on the stub is static (set at init from ibrMW); no update needed.
+                    // The sld-ibr-gen label inside the callout is also static (rated).
 
                     // Busbar colour tracks frequency health
                     const dev = Math.abs(bus.frequency - 50.0);
