@@ -1248,6 +1248,20 @@
             ibrSym.appendChild(ib); ibrSym.appendChild(it);
             defs.appendChild(ibrSym);
 
+            // IBR power-flow arrowhead marker (amber, auto-orient)
+            const arrowMk = document.createElementNS(ns, 'marker');
+            arrowMk.setAttribute('id',          'ibr-arrow');
+            arrowMk.setAttribute('markerWidth',  '7');
+            arrowMk.setAttribute('markerHeight', '7');
+            arrowMk.setAttribute('refX',         '6');
+            arrowMk.setAttribute('refY',         '3.5');
+            arrowMk.setAttribute('orient',       'auto');
+            const arrowPoly = document.createElementNS(ns, 'polygon');
+            arrowPoly.setAttribute('points', '0,0 7,3.5 0,7');
+            arrowPoly.setAttribute('fill',   '#f59e0b');
+            arrowMk.appendChild(arrowPoly);
+            defs.appendChild(arrowMk);
+
             // ── Bus layout ───────────────────────────────────────────
             // cx = horizontal centre;  by = top-y of busbar
             // calx/caly = top-left corner of data callout box
@@ -1292,8 +1306,18 @@
                 lineEl.setAttribute('stroke-width', '2.5');
                 lg.appendChild(lineEl);
 
-                // Flow label — placed at 28% for gen step-up lines, 50% for others
-                const t = ['1-4','2-7','3-9'].includes(ld.key) ? 0.28 : 0.50;
+                // Flow label — per-line positions chosen to avoid label clusters near line crossings
+                // 4-6 ∩ 5-7 cross ~(310,350); 6-9 ∩ 7-8 cross ~(497,354) — labels pushed to ends
+                const labelT = {
+                    '1-4':0.25, '2-7':0.25, '3-9':0.25,
+                    '4-5':0.75,             // near B5
+                    '4-6':0.15,             // near B4 (away from 4-6∩5-7 crossing)
+                    '5-7':0.85,             // near B7 (away from 4-6∩5-7 crossing)
+                    '6-9':0.15,             // near B6 (away from 6-9∩7-8 crossing)
+                    '7-8':0.85,             // near B8 (away from 6-9∩7-8 crossing)
+                    '8-9':0.50,
+                };
+                const t = labelT[ld.key] ?? 0.50;
                 const lx = x1 + (x2 - x1) * t;
                 const ly = y1 + (y2 - y1) * t;
                 // 10 px perpendicular offset so label doesn't sit on the line
@@ -1358,9 +1382,11 @@
                         const sideX = bus.cx + BW/2;
                         const sideY = bus.by + BH/2;
                         const stub = document.createElementNS(ns, 'line');
-                        stub.setAttribute('x1', sideX);      stub.setAttribute('y1', sideY);
-                        stub.setAttribute('x2', sideX + 44); stub.setAttribute('y2', sideY);
+                        // Drawn symbol→busbar (right-to-left) so marker-end arrow points toward busbar
+                        stub.setAttribute('x1', sideX + 44); stub.setAttribute('y1', sideY);
+                        stub.setAttribute('x2', sideX);      stub.setAttribute('y2', sideY);
                         stub.setAttribute('stroke', '#f59e0b'); stub.setAttribute('stroke-width','2.5');
+                        stub.setAttribute('marker-end', 'url(#ibr-arrow)');
                         g.appendChild(stub);
                         const u = document.createElementNS(ns, 'use');
                         u.setAttribute('href','#sym-ibr');
@@ -1384,11 +1410,12 @@
                         flt.textContent = '-- MW';
                         g.appendChild(flt);
                     } else {
-                        // Vertical stub above busbar
+                        // Vertical stub above busbar — drawn symbol→busbar (top-to-bottom) so arrow points down
                         const stub = document.createElementNS(ns, 'line');
                         stub.setAttribute('x1', bus.cx); stub.setAttribute('y1', bus.by - 36);
                         stub.setAttribute('x2', bus.cx); stub.setAttribute('y2', bus.by);
                         stub.setAttribute('stroke', '#f59e0b'); stub.setAttribute('stroke-width','2.5');
+                        stub.setAttribute('marker-end', 'url(#ibr-arrow)');
                         g.appendChild(stub);
                         const u = document.createElementNS(ns, 'use');
                         u.setAttribute('href','#sym-ibr');
