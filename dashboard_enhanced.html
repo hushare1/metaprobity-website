@@ -766,6 +766,10 @@
                                 <svg width="30" height="6"><line x1="0" y1="3" x2="30" y2="3" stroke="#ef4444" stroke-width="4.5" stroke-dasharray="8 4"/></svg>
                                 Overload (&gt;90%)
                             </span>
+                            <span style="display:flex;align-items:center;gap:4px;">
+                                <svg width="20" height="20" viewBox="-22 -22 44 44"><rect x="-18" y="-18" width="36" height="36" fill="none" stroke="#f59e0b" stroke-width="2.5" rx="3"/><text text-anchor="middle" y="7" font-size="18" fill="#f59e0b">⚡</text></svg>
+                                IBR
+                            </span>
                         </div>
                     </div>
 
@@ -1228,6 +1232,22 @@
             genSym.appendChild(gc); genSym.appendChild(gt);
             defs.appendChild(genSym);
 
+            // IBR symbol: square inverter box with ⚡ inside
+            const ibrSym = document.createElementNS(ns, 'symbol');
+            ibrSym.setAttribute('id', 'sym-ibr');
+            ibrSym.setAttribute('viewBox', '-22 -22 44 44');
+            const ib = document.createElementNS(ns, 'rect');
+            ib.setAttribute('x','-18'); ib.setAttribute('y','-18');
+            ib.setAttribute('width','36'); ib.setAttribute('height','36');
+            ib.setAttribute('rx','4');
+            ib.setAttribute('fill','none'); ib.setAttribute('stroke','currentColor'); ib.setAttribute('stroke-width','2.5');
+            const it = document.createElementNS(ns, 'text');
+            it.setAttribute('text-anchor','middle'); it.setAttribute('y','7');
+            it.setAttribute('font-size','18'); it.setAttribute('fill','currentColor');
+            it.textContent = '⚡';
+            ibrSym.appendChild(ib); ibrSym.appendChild(it);
+            defs.appendChild(ibrSym);
+
             // ── Bus layout ───────────────────────────────────────────
             // cx = horizontal centre;  by = top-y of busbar
             // calx/caly = top-left corner of data callout box
@@ -1238,10 +1258,10 @@
                 { id:3, cx:460, by:130, type:'GEN',   calx:370, caly:114 },
                 { id:4, cx:100, by:260, type:'TRANS', calx:8,   caly:250 },
                 { id:5, cx:165, by:375, type:'LOAD',  calx:75,  caly:374 },
-                { id:6, cx:280, by:385, type:'LOAD',  calx:193, caly:384 },
+                { id:6, cx:280, by:385, type:'LOAD',  calx:193, caly:384, ibr:'IBR-1 (GFM)' },
                 { id:7, cx:280, by:260, type:'TRANS', calx:288, caly:250 },
                 { id:8, cx:395, by:375, type:'LOAD',  calx:403, caly:374 },
-                { id:9, cx:460, by:260, type:'TRANS', calx:370, caly:250 },
+                { id:9, cx:460, by:260, type:'TRANS', calx:370, caly:250, ibr:'IBR-2 (GFL)' },
             ];
             const bcy = b => b.by + BH / 2;  // vertical centre of busbar
 
@@ -1328,6 +1348,21 @@
                 const g  = document.createElementNS(ns, 'g');
                 g.setAttribute('id', `sld-bg-${bus.id}`);
 
+                // IBR: inverter box symbol above busbar
+                if (bus.ibr) {
+                    const stub = document.createElementNS(ns, 'line');
+                    stub.setAttribute('x1', bus.cx); stub.setAttribute('y1', bus.by - 36);
+                    stub.setAttribute('x2', bus.cx); stub.setAttribute('y2', bus.by);
+                    stub.setAttribute('stroke', '#f59e0b'); stub.setAttribute('stroke-width','2.5');
+                    g.appendChild(stub);
+                    const u = document.createElementNS(ns, 'use');
+                    u.setAttribute('href','#sym-ibr');
+                    u.setAttribute('x', bus.cx-22); u.setAttribute('y', bus.by-36-44);
+                    u.setAttribute('width','44');    u.setAttribute('height','44');
+                    u.setAttribute('color', '#f59e0b');
+                    g.appendChild(u);
+                }
+
                 // Generator: circle-with-G symbol above busbar
                 if (bus.type === 'GEN') {
                     const stub = document.createElementNS(ns, 'line');
@@ -1355,7 +1390,7 @@
 
                 // Bus ID label
                 const lbl = document.createElementNS(ns, 'text');
-                const lblY = bus.type==='GEN'
+                const lblY = (bus.type==='GEN' || bus.ibr)
                     ? bus.by - 36 - 52
                     : bus.by + BH + (bus.type==='LOAD' ? 46 : 18);
                 lbl.setAttribute('x', bus.cx); lbl.setAttribute('y', lblY);
@@ -1365,8 +1400,8 @@
                 lbl.textContent = `B${bus.id}`;
                 g.appendChild(lbl);
 
-                // Load: inverted triangle below busbar + connecting stub
-                if (bus.type === 'LOAD') {
+                // Load: inverted triangle below busbar + connecting stub (skip for IBR buses)
+                if (bus.type === 'LOAD' && !bus.ibr) {
                     const ly0 = bus.by + BH + 2;
                     const stub2 = document.createElementNS(ns, 'line');
                     stub2.setAttribute('x1', bus.cx); stub2.setAttribute('y1', bus.by+BH);
@@ -1386,7 +1421,7 @@
                 cbg.setAttribute('width','84');   cbg.setAttribute('height','50');
                 cbg.setAttribute('rx','4');
                 cbg.setAttribute('fill','rgba(8,15,26,0.92)');
-                cbg.setAttribute('stroke', bc);   cbg.setAttribute('stroke-width','1');
+                cbg.setAttribute('stroke', bus.ibr ? '#f59e0b' : bc);   cbg.setAttribute('stroke-width','1');
                 g.appendChild(cbg);
 
                 const chd = document.createElementNS(ns, 'text');
@@ -1394,8 +1429,10 @@
                 chd.setAttribute('text-anchor','middle');
                 chd.setAttribute('font-size','9.5'); chd.setAttribute('font-weight','bold');
                 chd.setAttribute('fill', bc);
-                chd.textContent = bus.type==='GEN' ? `GEN-${bus.id}` :
+                chd.textContent = bus.ibr   ? bus.ibr :
+                                  bus.type==='GEN' ? `GEN-${bus.id}` :
                                   bus.type==='LOAD' ? `LD-${bus.id}` : `TX-${bus.id}`;
+                if (bus.ibr) chd.setAttribute('fill', '#f59e0b');
                 g.appendChild(chd);
 
                 const mkRow = (id, dy, init) => {
@@ -1414,6 +1451,8 @@
             });
         }
         
+        // ── LEGEND update: add IBR entry ────────────────────────────
+
         // ── SCADA SLD live data update ────────────────────────────
         function updateNetworkTopology(data) {
             // Power balance summary row
