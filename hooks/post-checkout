@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# ============================================================
+# post-checkout: Dark-theme auto-restore for metaprobity-website
+# After any git checkout, verify the dark theme is intact.
+# If it has been replaced by a light theme, restore from HEAD.
+# ============================================================
+
+STYLES="styles.css"
+RED='\033[0;31m'
+YEL='\033[1;33m'
+GRN='\033[0;32m'
+NC='\033[0m'
+
+if [ -f "$STYLES" ]; then
+  if ! grep -q "#0d1117" "$STYLES" || ! grep -q "\-\-bg-primary" "$STYLES"; then
+    echo ""
+    echo -e "${YEL}⚠  Dark theme missing in ${STYLES} after checkout — auto-restoring...${NC}"
+    git checkout HEAD -- "$STYLES" 2>/dev/null && \
+      echo -e "${GRN}✔  ${STYLES} restored to dark theme.${NC}" || \
+      echo -e "${RED}✗  Could not auto-restore ${STYLES}. Run: git checkout -- ${STYLES}${NC}"
+    echo ""
+  fi
+fi
+
+exit 0

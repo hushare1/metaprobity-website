@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# ============================================================
+# pre-commit: Dark-theme guardian for metaprobity-website
+# Rejects any commit that would overwrite the dark theme in
+# styles.css or strip the live-data logic from script.js.
+# ============================================================
+set -euo pipefail
+
+STYLES="styles.css"
+RED='\033[0;31m'
+YEL='\033[1;33m'
+GRN='\033[0;32m'
+NC='\033[0m'
+
+# Only check the file if it is staged for this commit
+if git diff --cached --name-only | grep -q "^${STYLES}$"; then
+
+  # Get the staged content (not the working-tree content)
+  STAGED_CONTENT=$(git show ":${STYLES}")
+
+  # Dark-theme sentinel values that MUST be present
+  MISSING=()
+  echo "$STAGED_CONTENT" | grep -q "#0d1117"           || MISSING+=("body background #0d1117")
+  echo "$STAGED_CONTENT" | grep -q "\-\-bg-primary"    || MISSING+=("--bg-primary CSS variable")
+  echo "$STAGED_CONTENT" | grep -q "DARK THEME"        || MISSING+=("DARK THEME comment block")
+  echo "$STAGED_CONTENT" | grep -q "background-color: var(--bg-primary)" || MISSING+=("body bg-primary rule")
+
+  if [ ${#MISSING[@]} -gt 0 ]; then
+    echo ""
+    echo -e "${RED}╔══════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${RED}║  COMMIT REJECTED — Dark theme has been overwritten!      ║${NC}"
+    echo -e "${RED}╚══════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${YEL}Missing dark-theme markers in staged ${STYLES}:${NC}"
+    for m in "${MISSING[@]}"; do
+      echo -e "  ${RED}✗${NC} $m"
+    done
+    echo ""
+    echo -e "${YEL}To restore the correct dark theme and unstage the bad version:${NC}"
+    echo -e "  ${GRN}git checkout -- ${STYLES}${NC}"
+    echo ""
+    echo -e "Then re-stage your intended changes (if any) and commit again."
+    echo ""
+    exit 1
+  fi
+
+  echo -e "${GRN}✔ Dark theme verified in ${STYLES}${NC}"
+fi
+
+exit 0
