@@ -1183,9 +1183,9 @@
                 <option>G1</option><option>G2</option><option>G3</option>
               </optgroup>
               <optgroup label="Lines">
-                <option>Line 1–4</option><option>Line 4–5</option><option>Line 5–6</option>
-                <option>Line 3–6</option><option>Line 6–7</option><option>Line 7–8</option>
-                <option>Line 8–2</option><option>Line 8–9</option><option>Line 9–4</option>
+                <option>Line 1–4</option><option>Line 2–7</option><option>Line 3–9</option>
+                <option>Line 4–5</option><option>Line 4–6</option><option>Line 5–7</option>
+                <option>Line 7–8</option><option>Line 9–6</option><option>Line 9–8</option>
               </optgroup>
             </select>
           </div>
@@ -1304,16 +1304,19 @@ const BUS_DATA = [
 ];
 
 const LINE_DATA = [
-  // [from, to, loading%, thermalMargin MVA, VSI, FVSI, risk5min, action]
-  { line:'1 → 4', load:45, tm:94,  vsi:0.81, fvsi:0.18, r5:'LOW',    action:'No action required. Healthy thermal and voltage stability margins.' },
-  { line:'4 → 5', load:62, tm:65,  vsi:0.74, fvsi:0.27, r5:'MEDIUM', action:'Line 4–5 loading trending up. Verify tie-line relays are armed in SCADA.' },
-  { line:'5 → 6', load:38, tm:105, vsi:0.86, fvsi:0.12, r5:'LOW',    action:'No action required.' },
-  { line:'3 → 6', load:71, tm:42,  vsi:0.68, fvsi:0.34, r5:'HIGH',   action:'Highest-loaded line — 29 MVA from thermal limit. Coordinate with generation dispatch to relieve.' },
-  { line:'6 → 7', load:55, tm:73,  vsi:0.77, fvsi:0.23, r5:'MEDIUM', action:'Monitor FVSI — approaching 0.30 slow-stability warn. Track with Bus 7 L-index.' },
-  { line:'7 → 8', load:48, tm:88,  vsi:0.83, fvsi:0.16, r5:'LOW',    action:'No action required.' },
-  { line:'8 → 2', load:33, tm:114, vsi:0.91, fvsi:0.08, r5:'LOW',    action:'Lowest-loaded line. No action required.' },
-  { line:'8 → 9', load:67, tm:54,  vsi:0.71, fvsi:0.31, r5:'MEDIUM', action:'Line 8–9 loading elevated — monitor thermal margin and verify protection coordination.' },
-  { line:'9 → 4', load:41, tm:98,  vsi:0.84, fvsi:0.15, r5:'LOW',    action:'No action required.' },
+  // Order matches backend stream_pmu.py line_flows output order — required for applyLiveData index mapping.
+  // IEEE 9-bus (Anderson & Fouad) standard power flow: G1=72 MW, G2=163 MW, G3=85 MW; Loads: B5=125, B6=90, B8=100 MW.
+  // Thermal rating: 200 MVA (uniform, per backend). tm = (100 − load%) × 1.8 ≈ headroom MVA.
+  // VSI / FVSI: computed from standard power-flow reactive flows and branch impedances (Anderson & Fouad App. B).
+  { line:'1 → 4', load:36, tm:115, vsi:0.97, fvsi:0.02, r5:'LOW',    action:'T1 (G1 step-up transformer). Operating at 36% — no action required.' },
+  { line:'2 → 7', load:82, tm:32,  vsi:0.96, fvsi:0.03, r5:'HIGH',   action:'T2 (G2 step-up transformer) at 82% — only 32 MVA thermal headroom. Verify cooling, monitor trend, consider generation re-dispatch to relieve.' },
+  { line:'3 → 9', load:43, tm:103, vsi:0.99, fvsi:0.01, r5:'LOW',    action:'T3 (G3 step-up transformer). Operating at 43% — no action required.' },
+  { line:'4 → 5', load:21, tm:142, vsi:0.89, fvsi:0.07, r5:'LOW',    action:'No action required.' },
+  { line:'4 → 6', load:16, tm:151, vsi:0.94, fvsi:0.04, r5:'LOW',    action:'No action required.' },
+  { line:'5 → 7', load:42, tm:104, vsi:0.72, fvsi:0.19, r5:'MEDIUM', action:'G2 supply corridor (flow 7→5). Monitor FVSI — elevated relative to loading. Track with Bus 5 L-index.' },
+  { line:'7 → 8', load:39, tm:110, vsi:0.85, fvsi:0.10, r5:'LOW',    action:'No action required.' },
+  { line:'9 → 6', load:30, tm:126, vsi:0.74, fvsi:0.17, r5:'LOW',    action:'No action required.' },
+  { line:'9 → 8', load:13, tm:157, vsi:0.92, fvsi:0.05, r5:'LOW',    action:'Lowest-loaded line. No action required.' },
 ];
 
 const GEN_DATA = [
