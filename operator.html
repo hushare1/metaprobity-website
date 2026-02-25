@@ -103,31 +103,25 @@
     }
 
     /* Tooltip */
-    .tooltip-wrap { position: relative; display: inline-block; cursor: help; }
-    .tooltip-wrap .tip {
-      visibility: hidden;
-      opacity: 0;
+    .tooltip-wrap { display: inline-block; cursor: default; }
+    .tip { display: none; } /* hidden — content read by JS */
+    #g-tip {
+      display: none;
+      position: fixed;
+      z-index: 9999;
       background: #2d333b;
       color: var(--text-primary);
       font-size: 11px;
-      line-height: 1.4;
+      line-height: 1.5;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
-      padding: 6px 10px;
-      position: absolute;
-      bottom: calc(100% + 6px);
-      left: 50%;
-      transform: translateX(-50%);
-      white-space: nowrap;
-      max-width: 280px;
+      padding: 7px 11px;
+      max-width: 300px;
       white-space: normal;
-      z-index: 999;
-      pointer-events: none;
-      transition: opacity 0.15s;
       box-shadow: var(--shadow-lg);
+      pointer-events: none;
     }
-    .tooltip-wrap:hover .tip { visibility: visible; opacity: 1; }
-    .info-icon { color: var(--text-dim); font-style: normal; font-size: 12px; }
+    .info-icon { display: none; }
 
     /* Tables */
     .data-table {
@@ -369,6 +363,7 @@
 
     .dimension-label { font-weight: 700; color: var(--text-primary); display: block; font-size: 14px; }
     .dimension-sub   { font-size: 13px; color: var(--text-muted); margin-top: 3px; display: block; }
+    .dimension-crit  { font-size: 11px; color: #f59e0b; margin-top: 2px; display: block; letter-spacing: 0.02em; }
 
     .matrix-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
     .matrix-cell .metric-val  { font-size: 13px; color: var(--text-primary); font-family: 'Courier New', monospace; line-height: 1.5; }
@@ -721,6 +716,7 @@
           <td>
             <span class="dimension-label">⚡ Frequency</span>
             <span class="dimension-sub">RoCoF · Nadir · FM</span>
+            <span class="dimension-crit">f_crit: 48.8 Hz</span>
           </td>
           <!-- 1 sec -->
           <td>
@@ -1613,7 +1609,7 @@ const BASE = {
   volt:  { li:[0.47,0.49,0.52,0.56],    vmin:[0.996,0.994,0.991,0.988],  kj:[84,88,101,114] },
   trans: { cct:[218,204,183,161],        mrad:[22.4,25.1,29.8,34.7],      tsi:[0.72,0.67,0.58,0.43] },
   osc:   { fosc:[0.25,0.25,0.24,0.24],  zeta:[8.5,8.2,7.8,7.2],          ts:[38.2,40.1,43.6,46.8] },
-  ibr:   { scr:[4.2,4.1,3.9,3.8],       wscr:[3.6,3.5,3.3,3.2],          pll:[0.52,0.50,0.48,0.46] },
+  ibr:   { scr:[4.2,4.1,3.9,3.8],       wscr:[3.6,3.5,3.3,3.2],          pll:[0.52,0.50,0.48,0.46], pen:[30,31,32,33] },
 };
 
 const DELTA_RULES = {
@@ -1688,7 +1684,7 @@ function runScenario() {
 
   const rows = [
     {
-      label: '⚡ Frequency', sub: 'RoCoF · Nadir · FM',
+      label: '⚡ Frequency', sub: 'RoCoF · Nadir · FM', crit: 'f_crit: 48.8 Hz',
       cells: horizons.map((_, h) => {
         const hs = hScale[h] * scale;
         const rocof = (BASE.freq.rocof[h] + (d.rocof||0)*hs).toFixed(2);
@@ -1702,7 +1698,7 @@ function runScenario() {
 
         const worse = parseFloat(rocof) > BASE.freq.rocof[h] || parseFloat(nadir) < BASE.freq.nadir[h];
         const cls = worse ? 'sim-delta-worse' : 'sim-delta-same';
-        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px">RoCoF: &minus;${rocof} Hz/s</span><br><span class="${cls}" style="font-size:11px">Nadir: ${nadir} Hz</span>`;
+        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px"><span class="tooltip-wrap">RoCoF: &minus;${rocof} Hz/s<i class="info-icon"> ℹ</i><span class="tip">Rate of Change of Frequency (ROCOF). Limit: ±0.5 Hz/s per ENTSO-E NC RfG Art. 13.1(c)</span></span></span><br><span class="${cls}" style="font-size:11px"><span class="tooltip-wrap">Nadir: ${nadir} Hz<i class="info-icon"> ℹ</i><span class="tip">Predicted frequency nadir after contingency. Warn &lt; 49.2 Hz, Critical &lt; 48.8 Hz</span></span></span>`;
       })
     },
     {
@@ -1719,7 +1715,7 @@ function runScenario() {
 
         const worse = parseFloat(li) > BASE.volt.li[h];
         const cls = worse ? 'sim-delta-worse' : 'sim-delta-same';
-        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px">L-Index: ${li}</span><br><span class="${cls}" style="font-size:11px">V_min: ${vmin} p.u.</span>`;
+        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px"><span class="tooltip-wrap">L-Index: ${li}<i class="info-icon"> ℹ</i><span class="tip">Voltage Stability L-Index. Range 0–1; 0=stable, 1=collapse. Warn ≥ 0.50, Crit ≥ 0.80</span></span></span><br><span class="${cls}" style="font-size:11px"><span class="tooltip-wrap">V_min: ${vmin} p.u.<i class="info-icon"> ℹ</i><span class="tip">Minimum bus voltage. Warn &lt; 0.95 p.u., Crit &lt; 0.90 p.u.</span></span></span>`;
       })
     },
     {
@@ -1736,7 +1732,7 @@ function runScenario() {
 
         const worse = cct < BASE.trans.cct[h];
         const cls = worse ? 'sim-delta-worse' : 'sim-delta-same';
-        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px">CCT: ${cct} ms</span><br><span class="${cls}" style="font-size:11px">TSI: ${tsi}</span>`;
+        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px"><span class="tooltip-wrap">CCT: ${cct} ms<i class="info-icon"> ℹ</i><span class="tip">Critical Clearing Time — max fault duration before loss of synchronism. Warn &lt; 150 ms, Crit &lt; 100 ms.</span></span></span><br><span class="${cls}" style="font-size:11px"><span class="tooltip-wrap">TSI: ${tsi}<i class="info-icon"> ℹ</i><span class="tip">Transient Stability Index = (δ_max − δ) / δ_max. TSI &gt; 0 = stable; TSI &lt; 0 = unstable. Warn &lt; 0.20.</span></span></span>`;
       })
     },
     {
@@ -1753,7 +1749,7 @@ function runScenario() {
 
         const worse = parseFloat(zeta) < BASE.osc.zeta[h];
         const cls = worse ? 'sim-delta-worse' : 'sim-delta-same';
-        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px">ζ: ${zeta}%</span><br><span class="${cls}" style="font-size:11px">T_settle: ${ts} s</span>`;
+        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px"><span class="tooltip-wrap">ζ: ${zeta}%<i class="info-icon"> ℹ</i><span class="tip">Damping ratio. Warn &lt; 5% (ENTSO-E), Crit &lt; 3% (growing oscillations).</span></span></span><br><span class="${cls}" style="font-size:11px"><span class="tooltip-wrap">T_settle: ${ts} s<i class="info-icon"> ℹ</i><span class="tip">Time for oscillations to decay to &lt; 5% of peak amplitude.</span></span></span>`;
       })
     },
     {
@@ -1770,7 +1766,7 @@ function runScenario() {
 
         const worse = parseFloat(scr) < BASE.ibr.scr[h];
         const cls = worse ? 'sim-delta-worse' : 'sim-delta-same';
-        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px">SCR: ${scr}</span><br><span class="${cls}" style="font-size:11px">PLL: ${pll}</span>`;
+        return `${riskChip(lvl)}<br><span class="${cls}" style="font-size:11px"><span class="tooltip-wrap">SCR: ${scr}<i class="info-icon"> ℹ</i><span class="tip">Short-Circuit Ratio at IBR point of common coupling. Warn &lt; 3.0, Crit &lt; 2.0.</span></span></span><br><span class="${cls}" style="font-size:11px"><span class="tooltip-wrap">PLL: ${pll}<i class="info-icon"> ℹ</i><span class="tip">PLL phase-margin. Warn &lt; 0.30. Indicates GFL inverter synchronisation robustness.</span></span></span>`;
       })
     },
   ];
@@ -1781,6 +1777,7 @@ function runScenario() {
       <td>
         <span class="dimension-label">${row.label}</span>
         <span class="dimension-sub">${row.sub}</span>
+        ${row.crit ? `<span class="dimension-crit">${row.crit}</span>` : ''}
       </td>
       ${row.cells.map(c => `<td><div class="matrix-cell" style="align-items:center">${c}</div></td>`).join('')}
     `;
@@ -1841,14 +1838,14 @@ function buildMatrix() {
   tbody.innerHTML = '';
   const rows = [
     {
-      label: '⚡ Frequency', sub: 'RoCoF · Nadir · FM',
+      label: '⚡ Frequency', sub: 'RoCoF · Nadir · FM', crit: 'f_crit: 48.8 Hz',
       cells: [0,1,2,3].map(h => {
         const rocof = BASE.freq.rocof[h].toFixed(2);
         const nadir = BASE.freq.nadir[h].toFixed(2);
         const fm    = BASE.freq.fm[h].toFixed(2);
         const lvl   = getLevel('freq', h);
         const ltag  = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
-        return `${riskChip(lvl)}<span class="metric-val">RoCoF: &minus;${rocof} Hz/s${ltag}</span><span class="metric-val">Nadir: ${nadir} Hz</span><span class="metric-val">FM: ${fm} Hz</span>`;
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">RoCoF: &minus;${rocof} Hz/s${ltag}<i class="info-icon"> ℹ</i><span class="tip">Rate of Change of Frequency (ROCOF). Limit: ±0.5 Hz/s per ENTSO-E NC RfG Art. 13.1(c)</span></span></span><span class="metric-val"><span class="tooltip-wrap">Nadir: ${nadir} Hz<i class="info-icon"> ℹ</i><span class="tip">Predicted frequency nadir after credible contingency. Warn &lt; 49.2 Hz, Critical &lt; 48.8 Hz</span></span></span><span class="metric-val"><span class="tooltip-wrap">FM: ${fm} Hz<i class="info-icon"> ℹ</i><span class="tip">Frequency Stability Margin = f_nadir &minus; f_crit. Higher is safer.</span></span></span>`;
       })
     },
     {
@@ -1859,7 +1856,7 @@ function buildMatrix() {
         const kj   = Math.round(BASE.volt.kj[h]);
         const lvl  = getLevel('volt', h);
         const ltag = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
-        return `${riskChip(lvl)}<span class="metric-val">L-Index: ${li}${ltag}</span><span class="metric-val">V_min: ${vmin} p.u.</span><span class="metric-val">κ(J): ${kj}</span>`;
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">L-Index: ${li}${ltag}<i class="info-icon"> ℹ</i><span class="tip">Voltage Stability L-Index (Kessel &amp; Glavitsch). Range 0–1; 0=stable, 1=collapse. Warn ≥ 0.50, Crit ≥ 0.80</span></span></span><span class="metric-val"><span class="tooltip-wrap">V_min: ${vmin} p.u.<i class="info-icon"> ℹ</i><span class="tip">Minimum bus voltage across system. Warn &lt; 0.95 p.u., Crit &lt; 0.90 p.u.</span></span></span><span class="metric-val"><span class="tooltip-wrap">κ(J): ${kj}<i class="info-icon"> ℹ</i><span class="tip">Jacobian condition number. Large κ indicates proximity to voltage collapse (ill-conditioned power flow Jacobian).</span></span></span>`;
       })
     },
     {
@@ -1869,7 +1866,7 @@ function buildMatrix() {
         const mrad = BASE.trans.mrad[h].toFixed(1);
         const tsi  = BASE.trans.tsi[h].toFixed(2);
         const lvl  = getLevel('trans', h);
-        return `${riskChip(lvl)}<span class="metric-val">CCT: ${cct} ms</span><span class="metric-val">MRAD: ${mrad}°</span><span class="metric-val">TSI: ${tsi}</span>`;
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">CCT: ${cct} ms<i class="info-icon"> ℹ</i><span class="tip">Critical Clearing Time — maximum fault duration before loss of synchronism. Warn &lt; 150 ms, Crit &lt; 100 ms.</span></span></span><span class="metric-val"><span class="tooltip-wrap">MRAD: ${mrad}°<i class="info-icon"> ℹ</i><span class="tip">Maximum Rotor Angle Deviation across all generator pairs post-contingency.</span></span></span><span class="metric-val"><span class="tooltip-wrap">TSI: ${tsi}<i class="info-icon"> ℹ</i><span class="tip">Transient Stability Index = (δ_max − δ) / δ_max. TSI &gt; 0 = stable; TSI &lt; 0 = unstable. Warn &lt; 0.20.</span></span></span>`;
       })
     },
     {
@@ -1879,7 +1876,7 @@ function buildMatrix() {
         const zeta = BASE.osc.zeta[h].toFixed(1);
         const ts   = BASE.osc.ts[h].toFixed(1);
         const lvl  = getLevel('osc', h);
-        return `${riskChip(lvl)}<span class="metric-val">f_osc: ${fosc} Hz</span><span class="metric-val">ζ: ${zeta}%</span><span class="metric-val">T_settle: ${ts} s</span>`;
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">f_osc: ${fosc} Hz<i class="info-icon"> ℹ</i><span class="tip">Dominant inter-area oscillation mode frequency. 0.1–0.8 Hz inter-area; 0.8–3.0 Hz local modes.</span></span></span><span class="metric-val"><span class="tooltip-wrap">ζ: ${zeta}%<i class="info-icon"> ℹ</i><span class="tip">Damping ratio. Warn &lt; 5% (ENTSO-E), Crit &lt; 3% (potential growing oscillations).</span></span></span><span class="metric-val"><span class="tooltip-wrap">T_settle: ${ts} s<i class="info-icon"> ℹ</i><span class="tip">Time for post-disturbance oscillations to decay to &lt; 5% of peak amplitude.</span></span></span>`;
       })
     },
     {
@@ -1890,13 +1887,13 @@ function buildMatrix() {
         const pll  = BASE.ibr.pll[h].toFixed(2);
         const lvl  = getLevel('ibr', h);
         const ltag = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
-        return `${riskChip(lvl)}<span class="metric-val">SCR: ${scr}${ltag}</span><span class="metric-val">WSCR: ${wscr}</span><span class="metric-val">PLL margin: ${pll}</span><span class="metric-val">IBR pen.: 37%</span>`;
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">SCR: ${scr}${ltag}<i class="info-icon"> ℹ</i><span class="tip">Short-Circuit Ratio at IBR point of common coupling. Warn &lt; 3.0, Crit &lt; 2.0.</span></span></span><span class="metric-val"><span class="tooltip-wrap">WSCR: ${wscr}<i class="info-icon"> ℹ</i><span class="tip">Weighted Short-Circuit Ratio accounting for multiple IBRs. More conservative than site SCR.</span></span></span><span class="metric-val"><span class="tooltip-wrap">PLL margin: ${pll}<i class="info-icon"> ℹ</i><span class="tip">PLL phase-margin. Warn &lt; 0.30. Indicates GFL inverter synchronisation robustness.</span></span></span><span class="metric-val"><span class="tooltip-wrap">IBR pen.: ${BASE.ibr.pen[h]}%<i class="info-icon"> ℹ</i><span class="tip">IBR penetration = IBR rated MW ÷ (sync gen MW + IBR rated MW). Computed from live total_generation_mw. IBR-1: 60 MVA, IBR-2: 50 MVA.</span></span></span>`;
       })
     },
   ];
   rows.forEach(row => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td><span class="dimension-label">${row.label}</span><span class="dimension-sub">${row.sub}</span></td>${row.cells.map(c => `<td><div class="matrix-cell">${c}</div></td>`).join('')}`;
+    tr.innerHTML = `<td><span class="dimension-label">${row.label}</span><span class="dimension-sub">${row.sub}</span>${row.crit ? `<span class="dimension-crit">${row.crit}</span>` : ''}</td>${row.cells.map(c => `<td><div class="matrix-cell">${c}</div></td>`).join('')}`;
     tbody.appendChild(tr);
   });
 }
@@ -2225,6 +2222,18 @@ function applyLiveData(d) {
     if (ibr1) BASE.ibr.scr[1] = ibr1.scr;  // GFM slot for secondary indicator
   }
 
+  // IBR penetration: IBR-1 (60 MVA) + IBR-2 (50 MVA) = 110 MW rated
+  // pen% = IBR_MW / (sync_gen_MW + IBR_MW) × 100  — updates whenever sync gen changes
+  {
+    const IBR_RATED_MW = 110;
+    const syncGen = d.total_generation_mw || 250;
+    const pen0 = Math.round(IBR_RATED_MW / (syncGen + IBR_RATED_MW) * 100);
+    BASE.ibr.pen[0] = pen0;
+    BASE.ibr.pen[1] = pen0;
+    BASE.ibr.pen[2] = pen0;
+    BASE.ibr.pen[3] = pen0;
+  }
+
   updateSystemState(d);
   buildMatrix();
   buildHorizonTiles();
@@ -2346,6 +2355,52 @@ function startForecastPolling(backendUrl) {
 ============================================================ */
 let syncSeconds = 0;
 let wallClock = new Date();
+
+/* ============================================================
+   GLOBAL TOOLTIP — survives live re-renders
+============================================================ */
+(function initGlobalTooltip() {
+  const gtip = document.createElement('div');
+  gtip.id = 'g-tip';
+  document.body.appendChild(gtip);
+
+  let hideTimer = null;
+
+  document.addEventListener('mouseover', e => {
+    const wrap = e.target.closest('.tooltip-wrap');
+    if (!wrap) return;
+    const tipEl = wrap.querySelector('.tip');
+    if (!tipEl) return;
+    const text = tipEl.textContent.trim();
+    if (!text) return;
+    clearTimeout(hideTimer);
+    gtip.textContent = text;
+    gtip.style.display = 'block';
+    positionTip(e);
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (gtip.style.display === 'block') positionTip(e);
+  });
+
+  document.addEventListener('mouseout', e => {
+    const wrap = e.target.closest('.tooltip-wrap');
+    if (!wrap) return;
+    hideTimer = setTimeout(() => { gtip.style.display = 'none'; }, 200);
+  });
+
+  function positionTip(e) {
+    const pad = 14;
+    let x = e.clientX + pad;
+    let y = e.clientY + pad;
+    const w = gtip.offsetWidth || 200;
+    const h = gtip.offsetHeight || 40;
+    if (x + w > window.innerWidth  - 8) x = e.clientX - w - pad;
+    if (y + h > window.innerHeight - 8) y = e.clientY - h - pad;
+    gtip.style.left = x + 'px';
+    gtip.style.top  = y + 'px';
+  }
+})();
 
 setInterval(() => {
   syncSeconds++;
