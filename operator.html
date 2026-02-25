@@ -963,7 +963,7 @@
       <div class="tab-buttons">
         <button class="tab-btn active" onclick="switchTab('buses')">Buses</button>
         <button class="tab-btn" onclick="switchTab('lines')">Lines</button>
-        <button class="tab-btn" onclick="switchTab('generators')">Generators / IBRs</button>
+        <button class="tab-btn" onclick="switchTab('generators')">Generators</button>
       </div>
 
       <!-- BUSES TAB -->
@@ -1131,13 +1131,6 @@
                 <td>30 sec</td>
               </tr>
               <tr>
-                <td><strong>IBR-2</strong></td>
-                <td>GFL — Bus 9</td>
-                <td>0.38</td>
-                <td><span style="color:var(--text-muted)">Neutral</span></td>
-                <td>2 min</td>
-              </tr>
-              <tr>
                 <td><strong>Line 5–7</strong></td>
                 <td>Transmission</td>
                 <td>0.29</td>
@@ -1174,7 +1167,6 @@
               <option value="gen_trip">Generator Trip</option>
               <option value="line_outage">Line Outage</option>
               <option value="load_change">Load Change</option>
-              <option value="ibr_curtail">IBR Curtailment</option>
               <option value="bess_inject">BESS Injection</option>
               <option value="demand_resp">Demand Response</option>
             </select>
@@ -1189,7 +1181,6 @@
               </optgroup>
               <optgroup label="Generators">
                 <option>G1</option><option>G2</option><option>G3</option>
-                <option>IBR-1</option><option>IBR-2</option>
               </optgroup>
               <optgroup label="Lines">
                 <option>Line 1–4</option><option>Line 4–5</option><option>Line 5–6</option>
@@ -1321,7 +1312,7 @@ const LINE_DATA = [
   { line:'6 → 7', load:55, tm:73,  vsi:0.77, fvsi:0.23, r5:'MEDIUM', action:'Monitor FVSI — approaching 0.30 slow-stability warn. Track with Bus 7 L-index.' },
   { line:'7 → 8', load:48, tm:88,  vsi:0.83, fvsi:0.16, r5:'LOW',    action:'No action required.' },
   { line:'8 → 2', load:33, tm:114, vsi:0.91, fvsi:0.08, r5:'LOW',    action:'Lowest-loaded line. No action required.' },
-  { line:'8 → 9', load:67, tm:54,  vsi:0.71, fvsi:0.31, r5:'MEDIUM', action:'IBR-2 export corridor — monitor if IBR-2 ramps up. Verify protection coordination.' },
+  { line:'8 → 9', load:67, tm:54,  vsi:0.71, fvsi:0.31, r5:'MEDIUM', action:'Line 8–9 loading elevated — monitor thermal margin and verify protection coordination.' },
   { line:'9 → 4', load:41, tm:98,  vsi:0.84, fvsi:0.15, r5:'LOW',    action:'No action required.' },
 ];
 
@@ -1329,8 +1320,6 @@ const GEN_DATA = [
   { id:'G1',    type:'SG',            typeFull:'Synchronous Generator', h:9.55, damp:18.2, oscRole:'Inertia anchor',    scr:'N/A', pll:'N/A', risk:'LOW',    action:'Maintain AVR in automatic. Primary frequency response asset.' },
   { id:'G2',    type:'SG',            typeFull:'Synchronous Generator', h:3.33, damp:9.4,  oscRole:'Osc. source (0.25 Hz)', scr:'N/A', pll:'N/A', risk:'MEDIUM', action:'Verify PSS is active and tuned. G2 is dominant source of inter-area mode.' },
   { id:'G3',    type:'SG',            typeFull:'Synchronous Generator', h:2.35, damp:7.8,  oscRole:'Osc. source (0.25 Hz)', scr:'N/A', pll:'N/A', risk:'MEDIUM', action:'Check governor droop setting. Co-source of oscillation with G2.' },
-  { id:'IBR-1', type:'Grid-Forming',  typeFull:'Grid-Forming IBR (VSM)', h:4.00, damp:12.1, oscRole:'Damping support',  scr:3.4,   pll:'N/A', risk:'LOW',    action:'Grid-forming IBR — confirm virtual inertia emulation is enabled.' },
-  { id:'IBR-2', type:'Grid-Following', typeFull:'Grid-Following IBR (PLL)', h:'0 (GFL)', damp:'N/A', oscRole:'Neutral', scr:3.1, pll:0.52, risk:'LOW',  action:'PLL stability margin nominal. Monitor trend in 30 s / 2 min horizons.' },
 ];
 
 /* Oscillation participation data (IEEE 9-bus, inter-area mode 1) */
@@ -1338,7 +1327,6 @@ let OSC_ELEMENTS = [
   { name:'G2',       type:'SG — Bus 2',     part:0.82, role:'Source',  horizon:'Current' },
   { name:'G3',       type:'SG — Bus 3',     part:0.74, role:'Source',  horizon:'Current' },
   { name:'Bus 7',    type:'Load Bus',        part:0.51, role:'Sink',    horizon:'30 sec'  },
-  { name:'IBR-2',    type:'GFL — Bus 9',    part:0.38, role:'Neutral', horizon:'2 min'   },
   { name:'Line 5–7', type:'Transmission',   part:0.29, role:'Neutral', horizon:'5 min'   },
 ];
 // Populated by applyLiveData() when the backend Prony estimator returns
@@ -1358,7 +1346,7 @@ function riskChip(level) {
    POPULATE SPATIAL TABLES
 ============================================================ */
 function genRiskFromLive(g) {
-  // Dynamic generator risk based on mode 1 damping (G2/G3) or PLL margin (IBR-2)
+  // Dynamic generator risk based on mode 1 damping (G2/G3)
   const z0 = BASE.osc.zeta[0];
   if (g.id === 'G2' || g.id === 'G3') {
     if (z0 < CONFIG.DAMPING_CRIT * 100) return 'CRITICAL';
@@ -1366,7 +1354,7 @@ function genRiskFromLive(g) {
     if (z0 < 7.0) return 'MEDIUM';
     return 'LOW';
   }
-  return g.risk; // Synchronous generators only — no IBR units in IEEE 9-bus
+  return g.risk; // IEEE 9-bus has only synchronous generators
 }
 
 function busRiskFromLive(b) {
@@ -1590,7 +1578,6 @@ function toggleScenario() {
      gen_trip:     RoCoF +0.08, nadir -0.15, L +0.05, CCT -12, ζ -0.3%
      line_outage:  L +0.08, CCT -18, SCR -0.15, FVSI_worst +0.05
      load_change:  L +0.04, V_min -0.003, ζ -0.2%
-     ibr_curtail:  SCR -0.2, PLL -0.03, RoCoF +0.04, nadir -0.08
      bess_inject:  RoCoF -0.05, nadir +0.10, L -0.03 (beneficial)
      demand_resp:  L -0.04, V_min +0.003 (beneficial)
 ============================================================ */
@@ -1778,8 +1765,8 @@ function runScenario() {
   // Summary text
   const typeLabels = {
     gen_trip:    'Generator Trip',     line_outage: 'Line Outage',
-    load_change: 'Load Increase',      ibr_curtail: 'IBR Curtailment',
-    bess_inject: 'BESS Injection',     demand_resp: 'Demand Response',
+    load_change: 'Load Increase',      bess_inject: 'BESS Injection',
+    demand_resp: 'Demand Response',
   };
   const beneficial = ['bess_inject','demand_resp'].includes(type);
   const effect = beneficial ? 'improve' : 'worsen';
