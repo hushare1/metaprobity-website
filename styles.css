@@ -270,9 +270,9 @@ body {
 
 .hero-stats {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 2rem;
-    max-width: 800px;
+    max-width: 700px;
     margin: 0 auto;
 }
 
@@ -1029,6 +1029,15 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    .gridsense-label {
+        font-size: 1.6rem;
+        top: 4.5rem;
+        left: 1rem;
+    }
+    .gs-bolt {
+        font-size: 1.4rem;
+    }
+
     .hero-title {
         font-size: 2.5rem;
     }
@@ -1081,15 +1090,26 @@ body {
     background: var(--bg-secondary);
 }
 
-/* Hero brand label (GridSense-AI tag above h1) */
-.hero-brand {
-    display: inline-block;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.65);
-    margin-bottom: 1rem;
+/* GridSense-AI — hero top-left product identity */
+.gridsense-label {
+    position: absolute;
+    top: 5.5rem;
+    left: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: #ff6a00;
+    text-shadow: 0 0 20px rgba(255, 106, 0, 0.5);
+    line-height: 1;
+    z-index: 2;
+}
+
+.gs-bolt {
+    font-size: 2rem;
+    filter: drop-shadow(0 0 8px rgba(255, 106, 0, 0.6));
 }
 
 /* Accent text inside hero title */
@@ -1109,32 +1129,6 @@ body {
     text-transform: uppercase;
     color: var(--primary-light);
     margin-bottom: 0.75rem;
-}
-
-/* Dark mode toggle button */
-.dark-mode-toggle {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    width: 48px;
-    height: 48px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-    cursor: pointer;
-    z-index: 999;
-    box-shadow: var(--shadow-lg);
-    transition: var(--transition);
-}
-
-.dark-mode-toggle:hover {
-    background: var(--bg-card-alt);
-    border-color: var(--primary-color);
-    transform: scale(1.1);
 }
 
 /* Hamburger bars (mobile) on dark navbar */
