@@ -1305,18 +1305,18 @@ const BUS_DATA = [
 
 const LINE_DATA = [
   // Order matches backend stream_pmu.py line_flows output order — required for applyLiveData index mapping.
-  // IEEE 9-bus (Anderson & Fouad) standard power flow: G1=72 MW, G2=163 MW, G3=85 MW; Loads: B5=125, B6=90, B8=100 MW.
-  // Thermal rating: 200 MVA (uniform, per backend). tm = (100 − load%) × 1.8 ≈ headroom MVA.
-  // VSI / FVSI: computed from standard power-flow reactive flows and branch impedances (Anderson & Fouad App. B).
-  { line:'1 → 4', load:36, tm:115, vsi:0.97, fvsi:0.02, r5:'LOW',    action:'T1 (G1 step-up transformer). No action required.' },
-  { line:'2 → 7', load:82, tm:32,  vsi:0.96, fvsi:0.03, r5:'HIGH',   action:'T2 (G2 step-up transformer). Monitoring thermal margin — verify cooling and generation dispatch if loading remains elevated.' },
-  { line:'3 → 9', load:43, tm:103, vsi:0.99, fvsi:0.01, r5:'LOW',    action:'T3 (G3 step-up transformer). No action required.' },
-  { line:'4 → 5', load:21, tm:142, vsi:0.89, fvsi:0.07, r5:'LOW',    action:'No action required.' },
-  { line:'4 → 6', load:16, tm:151, vsi:0.94, fvsi:0.04, r5:'LOW',    action:'No action required.' },
-  { line:'5 → 7', load:42, tm:104, vsi:0.72, fvsi:0.19, r5:'MEDIUM', action:'G2 supply corridor (flow 7→5). Monitor FVSI — elevated relative to loading. Track with Bus 5 L-index.' },
-  { line:'7 → 8', load:39, tm:110, vsi:0.85, fvsi:0.10, r5:'LOW',    action:'No action required.' },
-  { line:'9 → 6', load:30, tm:126, vsi:0.74, fvsi:0.17, r5:'LOW',    action:'No action required.' },
-  { line:'9 → 8', load:13, tm:157, vsi:0.92, fvsi:0.05, r5:'LOW',    action:'Lowest-loaded line. No action required.' },
+  // IEEE 9-bus (Anderson & Fouad) standard power flow: G1=72 MW, G2=163 MW, G3=85 MW (slack); Loads: B5=125+j50, B6=90+j30, B8=100+j35 MVA.
+  // Thermal rating: 200 MVA uniform (per backend). tm = (100 − load%) × 2 ≈ headroom MVA.
+  // VSI = 1 − FVSI (approx). FVSI = 4Z²|Qj| / (Vi²·Xij) computed at A&F standard operating point.
+  { line:'1 → 4', load:36,  tm:128, vsi:0.94, fvsi:0.06, r5:'LOW',    action:'T1 (G1 step-up transformer). No action required.' },
+  { line:'2 → 7', load:82,  tm:36,  vsi:0.98, fvsi:0.02, r5:'HIGH',   action:'T2 (G2 step-up transformer). Thermal margin tight at standard operating point — verify cooling and consider generation re-dispatch if loading remains elevated.' },
+  { line:'3 → 9', load:43,  tm:114, vsi:0.98, fvsi:0.02, r5:'LOW',    action:'T3 (G3 step-up transformer). No action required.' },
+  { line:'4 → 5', load:23,  tm:154, vsi:0.93, fvsi:0.07, r5:'LOW',    action:'No action required.' },
+  { line:'4 → 6', load:16,  tm:168, vsi:0.97, fvsi:0.03, r5:'LOW',    action:'No action required.' },
+  { line:'5 → 7', load:42,  tm:116, vsi:0.98, fvsi:0.02, r5:'LOW',    action:'G2 supply corridor (flow 7→5). No action required.' },
+  { line:'7 → 8', load:39,  tm:122, vsi:0.96, fvsi:0.04, r5:'LOW',    action:'No action required.' },
+  { line:'9 → 6', load:31,  tm:138, vsi:0.89, fvsi:0.11, r5:'LOW',    action:'No action required.' },
+  { line:'9 → 8', load:12,  tm:176, vsi:0.98, fvsi:0.02, r5:'LOW',    action:'Lowest-loaded line. No action required.' },
 ];
 
 const GEN_DATA = [
@@ -2174,14 +2174,16 @@ function applyLiveData(d) {
       if (i < LINE_DATA.length) {
         const pct = line.loading_pct;
         LINE_DATA[i].load = Math.round(pct);
-        LINE_DATA[i].tm   = Math.max(0, Math.round((100 - pct) * 1.8));
-        // Recompute risk from live loading (FVSI stays as static physics value)
+        LINE_DATA[i].tm   = Math.max(0, Math.round((100 - pct) * 2));  // exact: (1-pct/100)*200 MVA rating
+        // Recompute risk from live loading (FVSI stays as static physics value).
+        // FVSI-based escalation is gated on load ≥ 20% to prevent false alerts
+        // from static FVSI values when the line carries near-zero live flow.
         const fvsi = LINE_DATA[i].fvsi;
-        if (pct >= CONFIG.UTIL_CRIT || fvsi >= 0.30) {
+        if (pct >= CONFIG.UTIL_CRIT || (pct >= 20 && fvsi >= 0.30)) {
           LINE_DATA[i].r5 = 'CRITICAL';
-        } else if (pct >= CONFIG.UTIL_WARN || fvsi >= 0.25) {
+        } else if (pct >= CONFIG.UTIL_WARN || (pct >= 20 && fvsi >= 0.25)) {
           LINE_DATA[i].r5 = 'HIGH';
-        } else if (pct >= 55 || fvsi >= 0.18) {
+        } else if (pct >= 55 || (pct >= 20 && fvsi >= 0.18)) {
           LINE_DATA[i].r5 = 'MEDIUM';
         } else {
           LINE_DATA[i].r5 = 'LOW';
@@ -2189,14 +2191,17 @@ function applyLiveData(d) {
         // Recompute action text from live loading
         const tmMVA = LINE_DATA[i].tm;
         const name  = LINE_DATA[i].line.replace(' → ', '–');
+        const isT2  = LINE_DATA[i].line === '2 → 7';
         if (LINE_DATA[i].r5 === 'CRITICAL') {
           LINE_DATA[i].action = `Line ${name} critically loaded at ${Math.round(pct)}% — ${tmMVA} MVA from thermal limit. Immediate generation re-dispatch required.`;
         } else if (LINE_DATA[i].r5 === 'HIGH') {
-          LINE_DATA[i].action = `Line ${name} at ${Math.round(pct)}% — only ${tmMVA} MVA thermal headroom. Monitor closely and consider re-dispatch.`;
+          LINE_DATA[i].action = isT2
+            ? `T2 (G2 step-up transformer) at ${Math.round(pct)}% — ${tmMVA} MVA thermal headroom. Verify cooling and consider re-dispatch.`
+            : `Line ${name} at ${Math.round(pct)}% — only ${tmMVA} MVA thermal headroom. Monitor closely and consider re-dispatch.`;
         } else if (LINE_DATA[i].r5 === 'MEDIUM') {
           LINE_DATA[i].action = `Line ${name} at ${Math.round(pct)}% — monitor loading trend. Verify protection coordination.`;
         } else {
-          LINE_DATA[i].action = 'No action required.';
+          LINE_DATA[i].action = isT2 ? `T2 (G2 step-up transformer) at ${Math.round(pct)}%. No action required.` : 'No action required.';
         }
       }
     });
