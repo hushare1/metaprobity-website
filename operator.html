@@ -617,6 +617,40 @@
       0%, 100% { opacity: 1; }
       50%       { opacity: 0.3; }
     }
+
+    /* ============================================================
+       CONNECTING BANNER — shown until first live data arrives
+    ============================================================ */
+    #connecting-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 20px;
+      background: rgba(245,158,11,0.13);
+      border-bottom: 1px solid rgba(245,158,11,0.35);
+      font-size: 13px;
+      color: var(--amber);
+      font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+    #connecting-banner .cb-spinner {
+      width: 13px;
+      height: 13px;
+      border: 2px solid rgba(245,158,11,0.3);
+      border-top-color: var(--amber);
+      border-radius: 50%;
+      animation: cbSpin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes cbSpin {
+      to { transform: rotate(360deg); }
+    }
+    #connecting-banner .cb-note {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--text-dim);
+    }
   </style>
 </head>
 <body>
@@ -644,6 +678,13 @@
     </span>
   </div>
 </nav>
+
+<!-- CONNECTING BANNER — hidden once first live data arrives -->
+<div id="connecting-banner">
+  <div class="cb-spinner"></div>
+  <span>&#9888;&nbsp; CONNECTING TO BACKEND — values displayed are static defaults, not live telemetry</span>
+  <span class="cb-note">Backend may be waking from sleep &nbsp;(Render free tier — up to 60 s)</span>
+</div>
 
 <!-- ============================================================
      2. SYSTEM STATUS BANNER
@@ -2268,6 +2309,10 @@ function applyLiveData(d) {
   buildOscModes();
   buildOscElements();
   buildActionsPanel();
+
+  // Dismiss the connecting banner permanently on first successful live payload
+  const banner = document.getElementById('connecting-banner');
+  if (banner) banner.style.display = 'none';
 
   syncSeconds = 0;
   const el = document.getElementById('last-updated');
