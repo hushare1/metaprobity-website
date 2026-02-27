@@ -1333,15 +1333,20 @@ const CONFIG = {
    LIVE DATA — IEEE 9-Bus static dummy values
 ============================================================ */
 const BUS_DATA = [
+  // wh = topology-based electrical distance from nearest generator (worst horizon seed).
+  // IEEE 9-bus connectivity: G1─T1─Bus4; G2─T2─Bus7; G3─T3─Bus9.
+  // Bus4/7/9 are one hop from a generator (30 sec); Bus5/6/8 are two hops (2 min).
+  // Generator buses (1–3) show stress immediately (Current/1 sec).
+  // applyForecastData() overrides wh dynamically during active stress events only.
   { id:'Bus 1', v:1.040, li:0.14, fsn:'Low',  osc:0.11, wh:'1 sec',  risk:'LOW', action:'' },
   { id:'Bus 2', v:1.025, li:0.18, fsn:'Low',  osc:0.82, wh:'Current',risk:'LOW', action:'' },
   { id:'Bus 3', v:1.025, li:0.18, fsn:'Low',  osc:0.74, wh:'Current',risk:'LOW', action:'' },
-  { id:'Bus 4', v:1.026, li:0.20, fsn:'Low',  osc:0.22, wh:'2 min',  risk:'LOW', action:'' },
-  { id:'Bus 5', v:0.996, li:0.22, fsn:'Low',  osc:0.19, wh:'5 min',  risk:'LOW', action:'' },
+  { id:'Bus 4', v:1.026, li:0.20, fsn:'Low',  osc:0.22, wh:'30 sec', risk:'LOW', action:'' },
+  { id:'Bus 5', v:0.996, li:0.22, fsn:'Low',  osc:0.19, wh:'2 min',  risk:'LOW', action:'' },
   { id:'Bus 6', v:1.013, li:0.20, fsn:'Low',  osc:0.15, wh:'2 min',  risk:'LOW', action:'' },
   { id:'Bus 7', v:1.026, li:0.22, fsn:'Low',  osc:0.51, wh:'30 sec', risk:'LOW', action:'' },
-  { id:'Bus 8', v:1.016, li:0.20, fsn:'Low',  osc:0.33, wh:'5 min',  risk:'LOW', action:'' },
-  { id:'Bus 9', v:1.032, li:0.21, fsn:'Low',  osc:0.38, wh:'5 min',  risk:'LOW', action:'' },
+  { id:'Bus 8', v:1.016, li:0.20, fsn:'Low',  osc:0.33, wh:'2 min',  risk:'LOW', action:'' },
+  { id:'Bus 9', v:1.032, li:0.21, fsn:'Low',  osc:0.38, wh:'30 sec', risk:'LOW', action:'' },
 ];
 
 const LINE_DATA = [
@@ -1496,8 +1501,7 @@ function buildGenTable() {
 function buildOscModes() {
   const tbody = document.getElementById('body-modes');
   if (!tbody) return;
-  const z0  = BASE.osc.zeta[0];
-  const ts0 = BASE.osc.ts[0].toFixed(1);
+
   function zetaHtml(z) {
     const c = z < CONFIG.DAMPING_CRIT * 100 ? 'var(--red)'
             : z < CONFIG.DAMPING_WARN * 100 ? 'var(--amber)'
@@ -1509,32 +1513,30 @@ function buildOscModes() {
       ? `<span class="mode-status-warn">⚠ WATCH</span>`
       : `<span class="mode-status-ok">✓ STABLE</span>`;
   }
-  const rowClass0 = z0 < CONFIG.DAMPING_WARN * 100 ? ' class="row-warn"' : '';
-  tbody.innerHTML = `
-    <tr${rowClass0}>
-      <td><strong>Mode 1</strong></td>
-      <td>${BASE.osc.fosc[0].toFixed(2)}</td>
-      <td>${zetaHtml(z0)}</td>
-      <td><span class="chip chip-purple">Inter-area</span></td>
-      <td>${statusHtml(z0)}</td>
-      <td>${ts0}</td>
-    </tr>
-    <tr>
-      <td><strong>Mode 2</strong></td>
-      <td>1.12</td>
-      <td>${zetaHtml(8.6)}</td>
-      <td><span class="chip chip-dim">Local</span></td>
-      <td>${statusHtml(8.6)}</td>
-      <td>14.7</td>
-    </tr>
-    <tr>
-      <td><strong>Mode 3</strong></td>
-      <td>1.83</td>
-      <td>${zetaHtml(11.4)}</td>
-      <td><span class="chip chip-dim">Local</span></td>
-      <td>${statusHtml(11.4)}</td>
-      <td>8.9</td>
+
+  // All three rows now read from BASE.osc which is updated by applyLiveData()
+  // whenever Prony confidence > 0.5.  Indices: 0=Mode1(inter-area), 1=Mode2(local), 2=Mode3(local).
+  // Mode type label: Mode 1 is always inter-area for IEEE 9-bus; Modes 2-3 are local machine modes.
+  const modeConfig = [
+    { label: 'Mode 1', idx: 0, typeChip: '<span class="chip chip-purple">Inter-area</span>' },
+    { label: 'Mode 2', idx: 1, typeChip: '<span class="chip chip-dim">Local</span>' },
+    { label: 'Mode 3', idx: 2, typeChip: '<span class="chip chip-dim">Local</span>' },
+  ];
+
+  tbody.innerHTML = modeConfig.map(({ label, idx, typeChip }) => {
+    const z    = BASE.osc.zeta[idx];
+    const f    = BASE.osc.fosc[idx].toFixed(2);
+    const ts   = BASE.osc.ts[idx].toFixed(1);
+    const rowClass = z < CONFIG.DAMPING_WARN * 100 ? ' class="row-warn"' : '';
+    return `<tr${rowClass}>
+      <td><strong>${label}</strong></td>
+      <td>${f}</td>
+      <td>${zetaHtml(z)}</td>
+      <td>${typeChip}</td>
+      <td>${statusHtml(z)}</td>
+      <td>${ts}</td>
     </tr>`;
+  }).join('');
 }
 
 function buildOscElements() {
@@ -2216,7 +2218,12 @@ function applyLiveData(d) {
         const pct = line.loading_pct;
         LINE_DATA[i].load = Math.round(pct);
         LINE_DATA[i].tm   = Math.max(0, Math.round((100 - pct) * 2));  // exact: (1-pct/100)*200 MVA rating
-        // Recompute risk from live loading (FVSI stays as static physics value).
+        // Update FVSI and VSI from live backend computation if available.
+        if (typeof line.fvsi === 'number' && line.fvsi > 0) {
+          LINE_DATA[i].fvsi = Math.round(line.fvsi * 1000) / 1000;
+          LINE_DATA[i].vsi  = Math.max(0, Math.round((1 - line.fvsi) * 1000) / 1000);
+        }
+        // Recompute risk from live loading (FVSI now live when backend provides it).
         // FVSI-based escalation is gated on load ≥ 20% to prevent false alerts
         // from static FVSI values when the line carries near-zero live flow.
         const fvsi = LINE_DATA[i].fvsi;
@@ -2271,7 +2278,28 @@ function applyLiveData(d) {
         role   : p.role     || 'Neutral',
         horizon: idx === 0 ? 'Current' : idx < 3 ? '30 sec' : '2 min',
       }));
+
+      // --- Update GEN_DATA.oscRole from live Prony participant roles ---
+      // For each participant the Prony estimator returns a name (e.g. "G2") and
+      // a role ("Source" | "Sink" | "Neutral").  Map these back to GEN_DATA so
+      // the Generators table shows live labels instead of hardcoded strings.
+      // Format: "Osc. source (0.25 Hz)" or "Neutral (0.25 Hz)" to match prior style.
+      const modeFreq = m0.freq_hz ? (+m0.freq_hz).toFixed(2) : '?';
+      m0.participants.forEach(p => {
+        const gen = GEN_DATA.find(g => g.id === (p.name || `Bus ${p.bus_id}`));
+        if (gen) {
+          const role = (p.role || 'Neutral').toLowerCase();
+          gen.oscRole = role === 'neutral'
+            ? `Neutral (${modeFreq} Hz)`
+            : `Osc. ${role} (${modeFreq} Hz)`;
+        }
+      });
     }
+  } else if (d.modal && d.modal.confidence <= 0.5) {
+    // Steady-state: no real oscillatory content — label all generators as stable.
+    // oscRole reverts to a neutral label so the operator is not misled by a
+    // stale "Source" label from a previous event.
+    GEN_DATA.forEach(g => { g.oscRole = 'Stable — low osc. activity'; });
   }
 
   // --- Synchronous Margin: update BASE.sync from live generation/load data ---
@@ -2348,6 +2376,43 @@ function applyForecastData(f) {
     BASE.trans.mrad[b] = Math.min(90, BASE.trans.mrad[0] * (1 + (idx + 1) * 0.12));
     BASE.trans.tsi[b]  = Math.max(0.0, BASE.trans.tsi[0] - (idx + 1) * 0.07);
   });
+
+  // --- Per-bus Worst Horizon — dynamic override during active stress events ---
+  // In normal steady-state the EKF's VSI forecast recovers toward equilibrium, so
+  // future L-Index values are lower than nowcast — no override is needed and the
+  // topology-correct static seeds in BUS_DATA are the most meaningful values.
+  //
+  // During an active stress event (fault, generation trip, sudden load) the EKF
+  // will project VSI declining — forecast L-Index rises above nowcast — which is
+  // the signal to override wh with the earliest horizon showing real deterioration.
+  // This makes the column dynamic when it matters, static (topology-based) when not.
+  {
+    const HORIZON_LABELS = ['30 sec', '2 min', '5 min'];
+    const STRESS_THRESH  = 0.005;  // L-Index rise above nowcast to classify as stress
+
+    const forecastLI = f.horizons.map(hfc =>
+      Array.isArray(hfc.vsi_bus) ? hfc.vsi_bus.map(vsi => 1 - vsi) : []
+    );
+
+    const allValid = forecastLI.length === 3 &&
+                     forecastLI.every(arr => arr.length === BUS_DATA.length);
+
+    if (allValid) {
+      let anyOverride = false;
+      BUS_DATA.forEach((bus, i) => {
+        // Find earliest horizon where this bus's L-Index genuinely rises above nowcast
+        for (let h = 0; h < 3; h++) {
+          if ((forecastLI[h][i] - bus.li) >= STRESS_THRESH) {
+            bus.wh = HORIZON_LABELS[h];
+            anyOverride = true;
+            break;
+          }
+        }
+        // No override if no horizon shows deterioration — keep topology-based seed
+      });
+      if (anyOverride) buildBusTable();
+    }
+  }
 
   FORECAST_DATA = f;
   buildMatrix();
