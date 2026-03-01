@@ -1870,7 +1870,9 @@ function buildMatrix() {
         const fm    = BASE.freq.fm[h].toFixed(2);
         const lvl   = getLevel('freq', h);
         const ltag  = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
-        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">RoCoF: &minus;${rocof} Hz/s${ltag}<i class="info-icon"> ℹ</i><span class="tip">Rate of Change of Frequency (ROCOF). Limit: ±0.5 Hz/s per ENTSO-E NC RfG Art. 13.1(c)</span></span></span><span class="metric-val"><span class="tooltip-wrap">Nadir: ${nadir} Hz<i class="info-icon"> ℹ</i><span class="tip">Predicted frequency nadir after credible contingency. Warn &lt; 49.2 Hz, Critical &lt; 48.8 Hz</span></span></span><span class="metric-val"><span class="tooltip-wrap">FM: ${fm} Hz<i class="info-icon"> ℹ</i><span class="tip">Frequency Stability Margin = f_nadir &minus; f_crit. Higher is safer.</span></span></span>`;
+        const fcTag = (h  > 0 && FORECAST_DATA)  ? ' <span class="live-dot">●</span>' : '';
+        const tag   = h === 0 ? ltag : fcTag;
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">RoCoF: &minus;${rocof} Hz/s${tag}<i class="info-icon"> ℹ</i><span class="tip">Rate of Change of Frequency (ROCOF). Limit: ±0.5 Hz/s per ENTSO-E NC RfG Art. 13.1(c)</span></span></span><span class="metric-val"><span class="tooltip-wrap">Nadir: ${nadir} Hz<i class="info-icon"> ℹ</i><span class="tip">Predicted frequency nadir after credible contingency. Warn &lt; 49.2 Hz, Critical &lt; 48.8 Hz</span></span></span><span class="metric-val"><span class="tooltip-wrap">FM: ${fm} Hz<i class="info-icon"> ℹ</i><span class="tip">Frequency Stability Margin = f_nadir &minus; f_crit. Higher is safer.</span></span></span>`;
       })
     },
     {
@@ -1881,7 +1883,9 @@ function buildMatrix() {
         const kj   = Math.round(BASE.volt.kj[h]);
         const lvl  = getLevel('volt', h);
         const ltag = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
-        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">L-Index: ${li}${ltag}<i class="info-icon"> ℹ</i><span class="tip">Voltage Stability L-Index (Kessel &amp; Glavitsch). Range 0–1; 0=stable, 1=collapse. Warn ≥ 0.50, Crit ≥ 0.80</span></span></span><span class="metric-val"><span class="tooltip-wrap">V_min: ${vmin} p.u.<i class="info-icon"> ℹ</i><span class="tip">Minimum bus voltage across system. Warn &lt; 0.95 p.u., Crit &lt; 0.90 p.u.</span></span></span><span class="metric-val"><span class="tooltip-wrap">κ(J): ${kj}<i class="info-icon"> ℹ</i><span class="tip">Jacobian condition number. Large κ indicates proximity to voltage collapse (ill-conditioned power flow Jacobian).</span></span></span>`;
+        const fcTag = (h  > 0 && FORECAST_DATA) ? ' <span class="live-dot">●</span>' : '';
+        const tag   = h === 0 ? ltag : fcTag;
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">L-Index: ${li}${tag}<i class="info-icon"> ℹ</i><span class="tip">Voltage Stability L-Index (Kessel &amp; Glavitsch). Range 0–1; 0=stable, 1=collapse. Warn ≥ 0.50, Crit ≥ 0.80</span></span></span><span class="metric-val"><span class="tooltip-wrap">V_min: ${vmin} p.u.<i class="info-icon"> ℹ</i><span class="tip">Minimum bus voltage across system. Warn &lt; 0.95 p.u., Crit &lt; 0.90 p.u.</span></span></span><span class="metric-val"><span class="tooltip-wrap">κ(J): ${kj}<i class="info-icon"> ℹ</i><span class="tip">Jacobian condition number. Large κ indicates proximity to voltage collapse (ill-conditioned power flow Jacobian).</span></span></span>`;
       })
     },
     {
@@ -1891,7 +1895,10 @@ function buildMatrix() {
         const mrad = BASE.trans.mrad[h].toFixed(1);
         const tsi  = BASE.trans.tsi[h].toFixed(2);
         const lvl  = getLevel('trans', h);
-        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">CCT: ${cct} ms<i class="info-icon"> ℹ</i><span class="tip">Critical Clearing Time — maximum fault duration before loss of synchronism. Warn &lt; 150 ms, Crit &lt; 100 ms.</span></span></span><span class="metric-val"><span class="tooltip-wrap">MRAD: ${mrad}°<i class="info-icon"> ℹ</i><span class="tip">Maximum Rotor Angle Deviation across all generator pairs post-contingency.</span></span></span><span class="metric-val"><span class="tooltip-wrap">TSI: ${tsi}<i class="info-icon"> ℹ</i><span class="tip">Transient Stability Index = (δ_max − δ) / δ_max. TSI &gt; 0 = stable; TSI &lt; 0 = unstable. Warn &lt; 0.20.</span></span></span>`;
+        const ltag  = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
+        const fcTag = (h  > 0 && FORECAST_DATA)  ? ' <span class="live-dot">●</span>' : '';
+        const tag   = h === 0 ? ltag : fcTag;
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">CCT: ${cct} ms${tag}<i class="info-icon"> ℹ</i><span class="tip">Critical Clearing Time — maximum fault duration before loss of synchronism. Warn &lt; 150 ms, Crit &lt; 100 ms.</span></span></span><span class="metric-val"><span class="tooltip-wrap">MRAD: ${mrad}°<i class="info-icon"> ℹ</i><span class="tip">Maximum Rotor Angle Deviation across all generator pairs post-contingency.</span></span></span><span class="metric-val"><span class="tooltip-wrap">TSI: ${tsi}<i class="info-icon"> ℹ</i><span class="tip">Transient Stability Index = (δ_max − δ) / δ_max. TSI &gt; 0 = stable; TSI &lt; 0 = unstable. Warn &lt; 0.20.</span></span></span>`;
       })
     },
     {
@@ -1901,7 +1908,10 @@ function buildMatrix() {
         const zeta = BASE.osc.zeta[h].toFixed(1);
         const ts   = BASE.osc.ts[h].toFixed(1);
         const lvl  = getLevel('osc', h);
-        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">f_osc: ${fosc} Hz<i class="info-icon"> ℹ</i><span class="tip">Dominant inter-area oscillation mode frequency. 0.1–0.8 Hz inter-area; 0.8–3.0 Hz local modes.</span></span></span><span class="metric-val"><span class="tooltip-wrap">ζ: ${zeta}%<i class="info-icon"> ℹ</i><span class="tip">Damping ratio. Warn &lt; 5% (ENTSO-E), Crit &lt; 3% (potential growing oscillations).</span></span></span><span class="metric-val"><span class="tooltip-wrap">T_settle: ${ts} s<i class="info-icon"> ℹ</i><span class="tip">Time for post-disturbance oscillations to decay to &lt; 5% of peak amplitude.</span></span></span>`;
+        const ltag  = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
+        const fcTag = (h  > 0 && FORECAST_DATA)  ? ' <span class="live-dot">●</span>' : '';
+        const tag   = h === 0 ? ltag : fcTag;
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">f_osc: ${fosc} Hz${tag}<i class="info-icon"> ℹ</i><span class="tip">Dominant inter-area oscillation mode frequency. 0.1–0.8 Hz inter-area; 0.8–3.0 Hz local modes.</span></span></span><span class="metric-val"><span class="tooltip-wrap">ζ: ${zeta}%<i class="info-icon"> ℹ</i><span class="tip">Damping ratio. Warn &lt; 5% (ENTSO-E), Crit &lt; 3% (potential growing oscillations).</span></span></span><span class="metric-val"><span class="tooltip-wrap">T_settle: ${ts} s<i class="info-icon"> ℹ</i><span class="tip">Time for post-disturbance oscillations to decay to &lt; 5% of peak amplitude.</span></span></span>`;
       })
     },
     {
