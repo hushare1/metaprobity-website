@@ -1885,7 +1885,7 @@ function buildMatrix() {
         const ltag = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
         const fcTag = (h  > 0 && FORECAST_DATA) ? ' <span class="live-dot">●</span>' : '';
         const tag   = h === 0 ? ltag : fcTag;
-        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">L-Index: ${li}${tag}<i class="info-icon"> ℹ</i><span class="tip">Voltage Stability L-Index (Kessel &amp; Glavitsch). Range 0–1; 0=stable, 1=collapse. Warn ≥ 0.50, Crit ≥ 0.80</span></span></span><span class="metric-val"><span class="tooltip-wrap">V_min: ${vmin} p.u.${ltag}<i class="info-icon"> ℹ</i><span class="tip">Minimum bus voltage across system. EKF-measured at h=0 only; heuristic projection for h&gt;0. Warn &lt; 0.95 p.u., Crit &lt; 0.90 p.u.</span></span></span><span class="metric-val"><span class="tooltip-wrap">κ(J): ${kj}${ltag}<i class="info-icon"> ℹ</i><span class="tip">Jacobian condition number from EKF VSI at h=0; heuristic proxy for h&gt;0. Large κ indicates proximity to voltage collapse.</span></span></span>`;
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">L-Index: ${li}${tag}<i class="info-icon"> ℹ</i><span class="tip">Voltage Stability L-Index (Kessel &amp; Glavitsch). Range 0–1; 0=stable, 1=collapse. Warn ≥ 0.50, Crit ≥ 0.80</span></span></span><span class="metric-val"><span class="tooltip-wrap">V_min: ${vmin} p.u.${tag}<i class="info-icon"> ℹ</i><span class="tip">Minimum bus voltage across system. EKF-derived via V_i = 1 − k_freq·(f−60) − k_vsi·VSI_i. Warn &lt; 0.95 p.u., Crit &lt; 0.90 p.u.</span></span></span><span class="metric-val"><span class="tooltip-wrap">κ(J): ${kj}${tag}<i class="info-icon"> ℹ</i><span class="tip">Jacobian condition-number proxy κ = 100 / mean(1 − VSI); EKF-derived at all horizons. Large κ indicates proximity to voltage collapse.</span></span></span>`;
       })
     },
     {
@@ -2421,8 +2421,12 @@ function applyForecastData(f) {
 
     // Voltage stability
     BASE.volt.li[b]   = li;
-    BASE.volt.vmin[b] = Math.max(0.90, BASE.volt.vmin[0] - (li - BASE.volt.li[0]) * 0.05);
-    BASE.volt.kj[b]   = Math.round(84 * (1 + li * 0.6) * (1 + idx * 0.12));
+    BASE.volt.vmin[b] = (typeof hfc.min_v_bus === 'number' && hfc.min_v_bus > 0)
+      ? hfc.min_v_bus                                                                   // EKF-derived via V_i = 1 − k_freq·(f−60) − k_vsi·vsi
+      : Math.max(0.90, BASE.volt.vmin[0] - (li - BASE.volt.li[0]) * 0.05);             // fallback heuristic
+    BASE.volt.kj[b]   = (typeof hfc.kappa_jacobian === 'number' && hfc.kappa_jacobian > 0)
+      ? Math.round(hfc.kappa_jacobian)                                                  // EKF-derived κ = 100 / mean(1 − VSI)
+      : Math.round(84 * (1 + li * 0.6) * (1 + idx * 0.12));                            // fallback heuristic
 
     // Transient: CCT scales with predicted inertia H at that horizon
     // Use 0.99 decay — normal operation should not degrade CCT significantly across horizons
