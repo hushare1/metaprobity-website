@@ -1107,6 +1107,47 @@ body {
     z-index: 2;
 }
 
+/* Tab buttons (Spatial Ranking) */
+.tab-buttons {
+    display: flex;
+    gap: 8px;
+    margin: 12px 0 16px 0;
+}
+.tab-btn {
+    background: transparent;
+    color: var(--gray-700);
+    border: 1px solid var(--border-color);
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+    box-shadow: none;
+}
+.tab-btn:hover {
+    background: rgba(124, 58, 237, 0.06);
+    border-color: var(--primary-light);
+    color: var(--gray-800);
+    transform: translateY(-1px);
+}
+.tab-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-dark);
+    box-shadow: 0 6px 18px rgba(124, 58, 237, 0.18);
+}
+
+/* Tab panels: hide inactive panels to make tabs feel like tabs */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Make table headers inside tabs stand out a little more */
+.tab-panel .data-table thead th {
+    background: rgba(255,255,255,0.02);
+    color: var(--gray-700);
+    font-weight: 700;
+}
+
 .gs-bolt {
     font-size: 2rem;
     filter: drop-shadow(0 0 8px rgba(255, 106, 0, 0.6));
