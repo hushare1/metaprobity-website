@@ -1955,6 +1955,33 @@ function buildMatrix() {
 /* ============================================================
    BUILD / UPDATE HORIZON TILES
 ============================================================ */
+/* Returns a human-readable explanation of WHY a horizon is at its current risk level. */
+function buildHorizonReason(h) {
+  const hKeys  = ['freq','volt','trans','osc','sync'];
+  const LEVELS = ['LOW','MEDIUM','HIGH','CRITICAL'];
+  const dimLabel = { freq:'Frequency', volt:'Voltage', trans:'Transient', osc:'Oscillation', sync:'Sync. Margin' };
+  const dims = hKeys.map(k => {
+    const lvl = getLevel(k, h);
+    let detail = '';
+    if (k === 'freq')  detail = `RoCoF ${BASE.freq.rocof[h].toFixed(2)} Hz/s (limit \u00b10.5) \u00b7 Nadir ${BASE.freq.nadir[h].toFixed(2)} Hz (warn <49.2)`;
+    if (k === 'volt')  detail = `L-Index ${BASE.volt.li[h].toFixed(2)} (warn \u22650.50) \u00b7 V_min ${BASE.volt.vmin[h].toFixed(3)} p.u.`;
+    if (k === 'trans') detail = `CCT ${BASE.trans.cct[h]} ms (warn <150) \u00b7 TSI ${BASE.trans.tsi[h].toFixed(2)}`;
+    if (k === 'osc')   detail = `\u03b6 ${BASE.osc.zeta[h].toFixed(1)}% (warn <5%) \u00b7 T_settle ${BASE.osc.ts[h].toFixed(0)} s`;
+    if (k === 'sync')  detail = `Rspin ${BASE.sync.rspin[h].toFixed(0)}% (warn <20%) \u00b7 H ${BASE.sync.h[h].toFixed(2)} s`;
+    return { label: dimLabel[k], level: lvl, detail, idx: LEVELS.indexOf(lvl) };
+  });
+  dims.sort((a, b) => b.idx - a.idx);
+  if (dims[0].level === 'LOW') {
+    return 'All 5 stability dimensions are within normal limits. ' +
+      dims.map(d => `${d.label}: ${d.detail}`).join(' | ');
+  }
+  const bad = dims.filter(d => d.level !== 'LOW');
+  const ok  = dims.filter(d => d.level === 'LOW');
+  let txt = bad.map(d => `${d.label} (${d.level}): ${d.detail}`).join(' | ');
+  if (ok.length) txt += ` — Other dimensions OK: ${ok.map(d => d.label).join(', ')}.`;
+  return txt;
+}
+
 function buildHorizonTiles() {
   const ht = document.getElementById('horizon-tiles');
   if (!ht) return;
@@ -1997,7 +2024,8 @@ function buildHorizonTiles() {
       ];
       desc = staticDescs[h];
     }
-    return `<div class="horizon-tile"><span class="h-label">${label}</span><span class="chip ${cls}">${worst}</span><span class="h-desc">${desc}</span></div>`;
+    const reason = buildHorizonReason(h);
+    return `<div class="horizon-tile"><span class="h-label">${label}</span><span class="tooltip-wrap"><span class="chip ${cls}">${worst}</span><span class="tip">${reason}</span></span><span class="h-desc">${desc}</span></div>`;
   }).join('');
 }
 
@@ -2140,7 +2168,18 @@ function updateSystemState(d) {
       stateText = 'ELEVATED'; color = 'var(--amber)';
     }
   }
-  stateEl.innerHTML = `<span style="color:${color}">&#x25CF; ${stateText}</span>`;
+  const hKeys2    = ['freq','volt','trans','osc','sync'];
+  const dimLabel2  = { freq:'Frequency', volt:'Voltage', trans:'Transient', osc:'Oscillation', sync:'Sync. Margin' };
+  let stateReason;
+  if (!d.alarm_flag) {
+    const nonLow = hKeys2.filter(k => getLevel(k, 0) !== 'LOW').map(k => `${dimLabel2[k]} (${getLevel(k, 0)})`);
+    stateReason = nonLow.length === 0
+      ? `All 5 stability dimensions are within normal limits at the 1-second nowcast. RoCoF \u2212${BASE.freq.rocof[0].toFixed(2)} Hz/s \u00b7 Nadir ${BASE.freq.nadir[0].toFixed(2)} Hz \u00b7 L-Index ${BASE.volt.li[0].toFixed(2)} \u00b7 \u03b6 ${BASE.osc.zeta[0].toFixed(1)}% \u00b7 CCT ${BASE.trans.cct[0]} ms. No operator action required.`
+      : `Elevated risk detected: ${nonLow.join(', ')}. Review the Stability Matrix below and act via SCADA if required.`;
+  } else {
+    stateReason = d.alarm_text || 'Alarm active — review all stability dimensions immediately.';
+  }
+  stateEl.innerHTML = `<span class="tooltip-wrap"><span style="color:${color}">&#x25CF; ${stateText}</span><span class="tip">${stateReason}</span></span>`;
   if (subEl) {
     const hVal = d.H_system != null ? `H=${d.H_system.toFixed(2)} s` : '';
     const dVal = d.D_system != null ? `D=${d.D_system.toFixed(2)} p.u.` : '';
@@ -2158,10 +2197,16 @@ function updateGridUtil(pct) {
   const valEl = document.getElementById('util-value');
   const barEl = document.getElementById('util-bar-fill');
   if (valEl) {
-    valEl.textContent = pct + '%';
-    valEl.style.color = pct >= CONFIG.UTIL_CRIT ? 'var(--red)'
-                      : pct >= CONFIG.UTIL_WARN ? 'var(--amber)'
-                      : 'var(--green)';
+    const utilColor = pct >= CONFIG.UTIL_CRIT ? 'var(--red)'
+                    : pct >= CONFIG.UTIL_WARN ? 'var(--amber)'
+                    : 'var(--green)';
+    const utilStatus = pct >= CONFIG.UTIL_CRIT
+      ? `Critical \u2014 above ${CONFIG.UTIL_CRIT}% threshold. Risk of thermal overload on the 230 kV backbone. Re-dispatch or curtail transfers immediately.`
+      : pct >= CONFIG.UTIL_WARN
+      ? `Elevated \u2014 above ${CONFIG.UTIL_WARN}% warning threshold. Monitor for congestion and consider re-dispatch if utilisation continues to rise.`
+      : `Normal \u2014 within safe operating range. Warning threshold: ${CONFIG.UTIL_WARN}%. Critical threshold: ${CONFIG.UTIL_CRIT}%.`;
+    valEl.style.color = utilColor;
+    valEl.innerHTML = `<span class="tooltip-wrap" style="color:inherit">${pct}%<span class="tip">${pct}% of secure transfer capacity in use on the 230 kV backbone. ${utilStatus}</span></span>`;
   }
   if (barEl) {
     barEl.style.width = Math.min(pct, 100) + '%';
