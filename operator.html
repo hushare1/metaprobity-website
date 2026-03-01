@@ -1872,7 +1872,7 @@ function buildMatrix() {
         const ltag  = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
         const fcTag = (h  > 0 && FORECAST_DATA)  ? ' <span class="live-dot">●</span>' : '';
         const tag   = h === 0 ? ltag : fcTag;
-        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">RoCoF: &minus;${rocof} Hz/s${tag}<i class="info-icon"> ℹ</i><span class="tip">Rate of Change of Frequency (ROCOF). Limit: ±0.5 Hz/s per ENTSO-E NC RfG Art. 13.1(c)</span></span></span><span class="metric-val"><span class="tooltip-wrap">Nadir: ${nadir} Hz<i class="info-icon"> ℹ</i><span class="tip">Predicted frequency nadir after credible contingency. Warn &lt; 49.2 Hz, Critical &lt; 48.8 Hz</span></span></span><span class="metric-val"><span class="tooltip-wrap">FM: ${fm} Hz<i class="info-icon"> ℹ</i><span class="tip">Frequency Stability Margin = f_nadir &minus; f_crit. Higher is safer.</span></span></span>`;
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">RoCoF: &minus;${rocof} Hz/s${tag}<i class="info-icon"> ℹ</i><span class="tip">Rate of Change of Frequency (ROCOF). Limit: ±0.5 Hz/s per ENTSO-E NC RfG Art. 13.1(c)</span></span></span><span class="metric-val"><span class="tooltip-wrap">Nadir: ${nadir} Hz${tag}<i class="info-icon"> ℹ</i><span class="tip">Predicted frequency nadir after credible contingency. Warn &lt; 49.2 Hz, Critical &lt; 48.8 Hz</span></span></span><span class="metric-val"><span class="tooltip-wrap">FM: ${fm} Hz${tag}<i class="info-icon"> ℹ</i><span class="tip">Frequency Stability Margin = f_nadir &minus; f_crit. Higher is safer.</span></span></span>`;
       })
     },
     {
@@ -1885,7 +1885,7 @@ function buildMatrix() {
         const ltag = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
         const fcTag = (h  > 0 && FORECAST_DATA) ? ' <span class="live-dot">●</span>' : '';
         const tag   = h === 0 ? ltag : fcTag;
-        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">L-Index: ${li}${tag}<i class="info-icon"> ℹ</i><span class="tip">Voltage Stability L-Index (Kessel &amp; Glavitsch). Range 0–1; 0=stable, 1=collapse. Warn ≥ 0.50, Crit ≥ 0.80</span></span></span><span class="metric-val"><span class="tooltip-wrap">V_min: ${vmin} p.u.<i class="info-icon"> ℹ</i><span class="tip">Minimum bus voltage across system. Warn &lt; 0.95 p.u., Crit &lt; 0.90 p.u.</span></span></span><span class="metric-val"><span class="tooltip-wrap">κ(J): ${kj}<i class="info-icon"> ℹ</i><span class="tip">Jacobian condition number. Large κ indicates proximity to voltage collapse (ill-conditioned power flow Jacobian).</span></span></span>`;
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">L-Index: ${li}${tag}<i class="info-icon"> ℹ</i><span class="tip">Voltage Stability L-Index (Kessel &amp; Glavitsch). Range 0–1; 0=stable, 1=collapse. Warn ≥ 0.50, Crit ≥ 0.80</span></span></span><span class="metric-val"><span class="tooltip-wrap">V_min: ${vmin} p.u.${ltag}<i class="info-icon"> ℹ</i><span class="tip">Minimum bus voltage across system. EKF-measured at h=0 only; heuristic projection for h&gt;0. Warn &lt; 0.95 p.u., Crit &lt; 0.90 p.u.</span></span></span><span class="metric-val"><span class="tooltip-wrap">κ(J): ${kj}${ltag}<i class="info-icon"> ℹ</i><span class="tip">Jacobian condition number from EKF VSI at h=0; heuristic proxy for h&gt;0. Large κ indicates proximity to voltage collapse.</span></span></span>`;
       })
     },
     {
@@ -1911,7 +1911,7 @@ function buildMatrix() {
         const ltag  = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
         const fcTag = (h  > 0 && FORECAST_DATA)  ? ' <span class="live-dot">●</span>' : '';
         const tag   = h === 0 ? ltag : fcTag;
-        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">f_osc: ${fosc} Hz${tag}<i class="info-icon"> ℹ</i><span class="tip">Dominant inter-area oscillation mode frequency. 0.1–0.8 Hz inter-area; 0.8–3.0 Hz local modes.</span></span></span><span class="metric-val"><span class="tooltip-wrap">ζ: ${zeta}%<i class="info-icon"> ℹ</i><span class="tip">Damping ratio. Warn &lt; 5% (ENTSO-E), Crit &lt; 3% (potential growing oscillations).</span></span></span><span class="metric-val"><span class="tooltip-wrap">T_settle: ${ts} s<i class="info-icon"> ℹ</i><span class="tip">Time for post-disturbance oscillations to decay to &lt; 5% of peak amplitude.</span></span></span>`;
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">f_osc: ${fosc} Hz${tag}<i class="info-icon"> ℹ</i><span class="tip">Dominant inter-area oscillation mode frequency. 0.1–0.8 Hz inter-area; 0.8–3.0 Hz local modes.</span></span></span><span class="metric-val"><span class="tooltip-wrap">ζ: ${zeta}%${tag}<i class="info-icon"> ℹ</i><span class="tip">Damping ratio from Prony/Matrix-Pencil modal estimator. Warn &lt; 5% (ENTSO-E), Crit &lt; 3% (potential growing oscillations).</span></span></span><span class="metric-val"><span class="tooltip-wrap">T_settle: ${ts} s${tag}<i class="info-icon"> ℹ</i><span class="tip">Settling time from Prony/Matrix-Pencil modal estimator. Time for post-disturbance oscillations to decay to &lt; 5% of peak amplitude.</span></span></span>`;
       })
     },
     {
@@ -1926,7 +1926,7 @@ function buildMatrix() {
         // unless a generator trips. Constant value is the correct no-disturbance assumption.
         // Rspin and Headroom for h>0 are heuristic projections (not EKF-predicted).
         const hNote  = (h > 0) ? ' <span style="color:var(--text-dim);font-size:10px">(const)</span>' : ltag;
-        const rNote  = (h > 0) ? ' <span style="color:var(--text-dim);font-size:10px">~est.</span>' : '';
+        const rNote  = (h > 0) ? ' <span style="color:var(--text-dim);font-size:10px">~est.</span>' : ltag;  // h=0: EKF-sourced (generation/load from backend)
         return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">H_sys: ${Hs} s${hNote}<i class="info-icon"> ℹ</i><span class="tip">System inertia constant estimated by EKF from frequency-response dynamics. H is a physical machine property — it stays constant across forecast horizons unless a generator trips (no-disturbance assumption). Warn &lt; 3.0 s, Crit &lt; 1.5 s.</span></span></span><span class="metric-val"><span class="tooltip-wrap">Rspin: ${rspin}%${rNote}<i class="info-icon"> ℹ</i><span class="tip">Spinning reserve = (online capacity − dispatch) ÷ system load × 100. For h &gt; 0 this is a heuristic projection (not EKF-estimated) — actual reserve depends on future dispatch decisions. Warn &lt; 20%, Crit &lt; 5%.</span></span></span><span class="metric-val"><span class="tooltip-wrap">Headroom: ${phead} MW${rNote}<i class="info-icon"> ℹ</i><span class="tip">Remaining dispatchable generation headroom = total online capacity − current dispatch. For h &gt; 0 this is a heuristic projection based on typical load growth assumptions, not a physics-based forecast.</span></span></span>`;
       })
     },
