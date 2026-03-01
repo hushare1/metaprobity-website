@@ -2365,6 +2365,19 @@ function applyForecastData(f) {
     BASE.freq.nadir[b] = hfc.min_freq;
     BASE.freq.fm[b]    = Math.max(0, hfc.min_freq - 48.8);
 
+    // Oscillation modes: use EKF forward-propagated modal forecast when confident.
+    // Only use Mode 0 (dominant inter-area mode) to drive each horizon's risk column.
+    // Modes 1,2 stay as nowcast values since the Risk Matrix osc row is per-horizon,
+    // not per-mode (BASE.osc.fosc[h] = dominant mode freq at horizon h).
+    if (hfc.modal && hfc.modal.confidence > 0.5 && Array.isArray(hfc.modal.modes)) {
+      const m0 = hfc.modal.modes[0];  // dominant inter-area mode
+      if (m0) {
+        if (+m0.zeta_pct > 0) BASE.osc.zeta[b] = +m0.zeta_pct;
+        if (+m0.freq_hz  > 0) BASE.osc.fosc[b] = +m0.freq_hz;
+        if (+m0.ts_s     > 0) BASE.osc.ts[b]   = +m0.ts_s;
+      }
+    }
+
     // Voltage stability
     BASE.volt.li[b]   = li;
     BASE.volt.vmin[b] = Math.max(0.90, BASE.volt.vmin[0] - (li - BASE.volt.li[0]) * 0.05);
