@@ -2227,27 +2227,42 @@ function applyLiveData(d) {
         // FVSI-based escalation is gated on load ≥ 20% to prevent false alerts
         // from static FVSI values when the line carries near-zero live flow.
         const fvsi = LINE_DATA[i].fvsi;
+        const fvsiTriggered = (pct >= 20 && fvsi >= 0.18);
         if (pct >= CONFIG.UTIL_CRIT || (pct >= 20 && fvsi >= 0.30)) {
           LINE_DATA[i].r5 = 'CRITICAL';
         } else if (pct >= CONFIG.UTIL_WARN || (pct >= 20 && fvsi >= 0.25)) {
           LINE_DATA[i].r5 = 'HIGH';
-        } else if (pct >= 55 || (pct >= 20 && fvsi >= 0.18)) {
+        } else if (pct >= 55 || fvsiTriggered) {
           LINE_DATA[i].r5 = 'MEDIUM';
         } else {
           LINE_DATA[i].r5 = 'LOW';
         }
-        // Recompute action text from live loading
+        // Recompute action text from live loading and root cause (thermal vs reactive/FVSI)
         const tmMVA = LINE_DATA[i].tm;
         const name  = LINE_DATA[i].line.replace(' → ', '–');
         const isT2  = LINE_DATA[i].line === '2 → 7';
         if (LINE_DATA[i].r5 === 'CRITICAL') {
-          LINE_DATA[i].action = `Line ${name} critically loaded at ${Math.round(pct)}% — ${tmMVA} MVA from thermal limit. Immediate generation re-dispatch required.`;
+          if (pct >= CONFIG.UTIL_CRIT) {
+            LINE_DATA[i].action = `Line ${name} critically loaded at ${Math.round(pct)}% — ${tmMVA} MVA from thermal limit. Immediate generation re-dispatch required.`;
+          } else {
+            LINE_DATA[i].action = `Line ${name} experiencing extreme reactive stress (FVSI=${fvsi.toFixed(2)}) — risk of voltage instability. Immediate reactive support (shunts/AVR/tap changes) required.`;
+          }
         } else if (LINE_DATA[i].r5 === 'HIGH') {
-          LINE_DATA[i].action = isT2
-            ? `T2 (G2 step-up transformer) at ${Math.round(pct)}% — ${tmMVA} MVA thermal headroom. Verify cooling and consider re-dispatch.`
-            : `Line ${name} at ${Math.round(pct)}% — only ${tmMVA} MVA thermal headroom. Monitor closely and consider re-dispatch.`;
+          if (pct >= CONFIG.UTIL_WARN) {
+            LINE_DATA[i].action = isT2
+              ? `T2 (G2 step-up transformer) at ${Math.round(pct)}% — ${tmMVA} MVA thermal headroom. Verify cooling and consider re-dispatch.`
+              : `Line ${name} at ${Math.round(pct)}% — only ${tmMVA} MVA thermal headroom. Monitor closely and consider re-dispatch.`;
+          } else {
+            LINE_DATA[i].action = `Elevated reactive stress on ${name} (FVSI=${fvsi.toFixed(2)}) — check AVR, shunt capacitor status, and transformer taps.`;
+          }
         } else if (LINE_DATA[i].r5 === 'MEDIUM') {
-          LINE_DATA[i].action = `Line ${name} at ${Math.round(pct)}% — monitor loading trend. Verify protection coordination.`;
+          if (pct >= 55) {
+            LINE_DATA[i].action = `Line ${name} at ${Math.round(pct)}% — monitor loading trend. Verify protection coordination.`;
+          } else if (fvsiTriggered) {
+            LINE_DATA[i].action = `Line ${name} at ${Math.round(pct)}% — elevated reactive stress (FVSI=${fvsi.toFixed(2)}). Check AVR/shunt status and tap changers.`;
+          } else {
+            LINE_DATA[i].action = `Line ${name} — monitor loading trend and protection.`;
+          }
         } else {
           LINE_DATA[i].action = isT2 ? `T2 (G2 step-up transformer) at ${Math.round(pct)}%. No action required.` : 'No action required.';
         }
