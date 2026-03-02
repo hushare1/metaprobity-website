@@ -1192,6 +1192,13 @@
                 <td><span style="color:var(--text-muted)">Neutral</span></td>
                 <td>5 min</td>
               </tr>
+              <tr>
+                <td><strong>Bus 9</strong></td>
+                <td>Load Bus</td>
+                <td>0.18</td>
+                <td><span style="color:var(--amber);font-weight:600">Sink</span></td>
+                <td>10 min</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -1391,6 +1398,7 @@ let OSC_ELEMENTS = [
   { name:'G3',       type:'SG — Bus 3',     part:0.74, role:'Source',  horizon:'Current' },
   { name:'Bus 7',    type:'Load Bus',        part:0.51, role:'Sink',    horizon:'30 sec'  },
   { name:'Line 5–7', type:'Transmission',   part:0.29, role:'Neutral', horizon:'5 min'   },
+  { name:'Bus 9',    type:'Load Bus',        part:0.18, role:'Sink',    horizon:'10 min'  },
 ];
 // Populated by applyLiveData() when the backend Prony estimator returns
 // confidence > 0.5 (i.e. real oscillatory content detected).
