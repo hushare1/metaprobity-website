@@ -826,14 +826,12 @@
           <td>
             <div class="matrix-cell">
               <span class="chip chip-green">LOW</span>
-              <span class="metric-val">
-                <span class="tooltip-wrap">L-Index: 0.47<i class="info-icon"> ℹ</i><span class="tip">System Voltage Stability L-Index (Kessel &amp; Glavitsch 1986). Range 0–1; 0=stable, 1=collapse. Warn ≥ 0.50, Crit ≥ 0.80</span></span>
-              </span>
+              <span class="metric-val">L-Index: 0.47</span>
               <span class="metric-val">
                 <span class="tooltip-wrap">V_min: 0.996 p.u.<i class="info-icon"> ℹ</i><span class="tip">Minimum bus voltage across system. Warn &lt; 0.95 p.u., Crit &lt; 0.90 p.u.</span></span>
               </span>
               <span class="metric-val">
-                <span class="tooltip-wrap">κ(J): 84.2<i class="info-icon"> ℹ</i><span class="tip">Jacobian condition number. Large κ indicates proximity to voltage collapse (ill-conditioned power flow Jacobian).</span></span>
+                <span class="tooltip-wrap">κ(J): 84.2<i class="info-icon"> ℹ</i><span class="tip">Mathematical stability indicator. Large values indicate proximity to voltage instability (ill-conditioned mathematical model).</span></span>
               </span>
             </div>
           </td>
@@ -842,7 +840,9 @@
               <span class="chip chip-green">LOW</span>
               <span class="metric-val">L-Index: 0.49</span>
               <span class="metric-val">V_min: 0.994 p.u.</span>
-              <span class="metric-val">κ(J): 88.1</span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">κ(J): 88.1<i class="info-icon"> ℹ</i><span class="tip">Mathematical stability indicator. Higher values show proximity to instability.</span></span>
+              </span>
             </div>
           </td>
           <td>
@@ -850,7 +850,9 @@
               <span class="chip chip-amber">MEDIUM</span>
               <span class="metric-val">L-Index: 0.52</span>
               <span class="metric-val">V_min: 0.991 p.u.</span>
-              <span class="metric-val">κ(J): 101.4</span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">κ(J): 101.4<i class="info-icon"> ℹ</i><span class="tip">Mathematical stability indicator. Higher values show proximity to instability.</span></span>
+              </span>
             </div>
           </td>
           <td>
@@ -858,7 +860,9 @@
               <span class="chip chip-amber">MEDIUM</span>
               <span class="metric-val">L-Index: 0.56</span>
               <span class="metric-val">V_min: 0.988 p.u.</span>
-              <span class="metric-val">κ(J): 114.7</span>
+              <span class="metric-val">
+                <span class="tooltip-wrap">κ(J): 114.7<i class="info-icon"> ℹ</i><span class="tip">Mathematical stability indicator. Higher values show proximity to instability.</span></span>
+              </span>
             </div>
           </td>
         </tr>
@@ -965,7 +969,7 @@
             <div class="matrix-cell">
               <span class="chip chip-green">LOW</span>
               <span class="metric-val">
-                <span class="tooltip-wrap">H_sys: 4.0 s<i class="info-icon"> ℹ</i><span class="tip">System inertia constant as estimated by the EKF from frequency-response dynamics. PSAT IEEE 9-bus ground truth ≈ 4.0 s on the 100 MVA system base. Higher H = slower frequency decline after loss of generation. Warn &lt; 3.0 s, Crit &lt; 1.5 s.</span></span>
+                <span class="tooltip-wrap">H_sys: 4.0 s<i class="info-icon"> ℹ</i><span class="tip">System inertia constant as estimated from frequency-response dynamics. Higher H = slower frequency decline after generation loss. Warn &lt; 3.0 s, Crit &lt; 1.5 s.</span></span>
               </span>
               <span class="metric-val">
                 <span class="tooltip-wrap">Rspin: 54%<i class="info-icon"> ℹ</i><span class="tip">Spinning reserve = (online capacity − dispatch) ÷ system load × 100. Warn &lt; 20%, Crit &lt; 5%.</span></span>
@@ -1907,7 +1911,7 @@ function buildMatrix() {
         const ltag = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
         const fcTag = (h  > 0 && FORECAST_DATA) ? ' <span class="live-dot">●</span>' : '';
         const tag   = h === 0 ? ltag : fcTag;
-        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">L-Index: ${li}${tag}<i class="info-icon"> ℹ</i><span class="tip">Voltage Stability L-Index (Kessel &amp; Glavitsch). Range 0–1; 0=stable, 1=collapse. Warn ≥ 0.50, Crit ≥ 0.80</span></span></span><span class="metric-val"><span class="tooltip-wrap">V_min: ${vmin} p.u.${tag}<i class="info-icon"> ℹ</i><span class="tip">Minimum bus voltage across system. EKF-derived via V_i = 1 − k_freq·(f−60) − k_vsi·VSI_i. Warn &lt; 0.95 p.u., Crit &lt; 0.90 p.u.</span></span></span><span class="metric-val"><span class="tooltip-wrap">κ(J): ${kj}${tag}<i class="info-icon"> ℹ</i><span class="tip">Jacobian condition-number proxy κ = 100 / mean(1 − VSI); EKF-derived at all horizons. Large κ indicates proximity to voltage collapse.</span></span></span>`;
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">L-Index: ${li}${tag}<i class="info-icon"> ℹ</i><span class="tip">System voltage stability indicator. Range 0–1; 0=stable, 1=critical. Warn ≥ 0.50, Crit ≥ 0.80</span></span></span><span class="metric-val"><span class="tooltip-wrap">V_min: ${vmin} p.u.${tag}<i class="info-icon"> ℹ</i><span class="tip">Minimum bus voltage across system. Derived from prediction estimates. Warn &lt; 0.95 p.u., Crit &lt; 0.90 p.u.</span></span></span><span class="metric-val"><span class="tooltip-wrap">κ(J): ${kj}${tag}<i class="info-icon"> ℹ</i><span class="tip">Mathematical stability metric κ = 100 / mean(1 − VSI); derived at all horizons. Large κ indicates proximity to instability.</span></span></span>`;
       })
     },
     {
@@ -1946,10 +1950,10 @@ function buildMatrix() {
         const ltag  = (h === 0 && liveConnected) ? ' <span class="live-dot">●</span>' : '';
         // H is a physical machine constant — it doesn't change over the forecast horizon
         // unless a generator trips. Constant value is the correct no-disturbance assumption.
-        // Rspin and Headroom for h>0 are heuristic projections (not EKF-predicted).
+        // Rspin and Headroom for h>0 are heuristic projections (not prediction-based).
         const hNote  = (h > 0) ? ' <span style="color:var(--text-dim);font-size:10px">(const)</span>' : ltag;
-        const rNote  = (h > 0) ? ' <span style="color:var(--text-dim);font-size:10px">~est.</span>' : ltag;  // h=0: EKF-sourced (generation/load from backend)
-        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">H_sys: ${Hs} s${hNote}<i class="info-icon"> ℹ</i><span class="tip">System inertia constant estimated by EKF from frequency-response dynamics. H is a physical machine property — it stays constant across forecast horizons unless a generator trips (no-disturbance assumption). Warn &lt; 3.0 s, Crit &lt; 1.5 s.</span></span></span><span class="metric-val"><span class="tooltip-wrap">Rspin: ${rspin}%${rNote}<i class="info-icon"> ℹ</i><span class="tip">Spinning reserve = (online capacity − dispatch) ÷ system load × 100. For h &gt; 0 this is a heuristic projection (not EKF-estimated) — actual reserve depends on future dispatch decisions. Warn &lt; 20%, Crit &lt; 5%.</span></span></span><span class="metric-val"><span class="tooltip-wrap">Headroom: ${phead} MW${rNote}<i class="info-icon"> ℹ</i><span class="tip">Remaining dispatchable generation headroom = total online capacity − current dispatch. For h &gt; 0 this is a heuristic projection based on typical load growth assumptions, not a physics-based forecast.</span></span></span>`;
+        const rNote  = (h > 0) ? ' <span style="color:var(--text-dim);font-size:10px">~est.</span>' : ltag;  // h=0: derived from backend
+        return `${riskChip(lvl)}<span class="metric-val"><span class="tooltip-wrap">H_sys: ${Hs} s${hNote}<i class="info-icon"> ℹ</i><span class="tip">System inertia constant estimated from frequency-response dynamics. H is a physical machine property — it stays constant across forecast horizons unless a generator trips (no-disturbance assumption). Warn &lt; 3.0 s, Crit &lt; 1.5 s.</span></span></span><span class="metric-val"><span class="tooltip-wrap">Rspin: ${rspin}%${rNote}<i class="info-icon"> ℹ</i><span class="tip">Spinning reserve = (online capacity − dispatch) ÷ system load × 100. For h &gt; 0 this is a heuristic projection — actual reserve depends on future dispatch decisions. Warn &lt; 20%, Crit &lt; 5%.</span></span></span><span class="metric-val"><span class="tooltip-wrap">Headroom: ${phead} MW${rNote}<i class="info-icon"> ℹ</i><span class="tip">Remaining dispatchable generation headroom = total online capacity − current dispatch. For h &gt; 0 this is a heuristic projection based on typical load growth assumptions, not a physics-based forecast.</span></span></span>`;
       })
     },
   ];
@@ -2234,7 +2238,7 @@ function applyLiveData(d) {
   // Nowcast (h=0): update BASE[0] directly from live API measurements
   const maxRoCoF = Math.max(...d.rocof_bus.map(r => Math.abs(r)));
   const minFreq  = Math.min(...d.freq_bus);
-  // EKF-estimated inertia and damping — used in nadir, CCT, and sync margin
+  // Estimated inertia and damping — used in nadir, CCT, and sync margin
   const H_live = (d.H_system != null) ? d.H_system : 4.0;
   const D_live = (d.D_system != null && d.D_system > 0.05) ? d.D_system : 0.95;
   BASE.freq.rocof[0] = maxRoCoF;
@@ -2408,15 +2412,15 @@ function applyLiveData(d) {
 
   // --- Synchronous Margin: update BASE.sync from live generation/load data ---
   // IEEE 9-bus has only synchronous generators — track H_sys, spinning reserve and headroom.
-  // H_system is estimated by the EKF from frequency-response dynamics; the PSAT
-  // ground-truth value is ≈ 4.0 s on the 100 MVA aggregate system base (EKF clips [4.0, 6.0] s).
+  // H_system is estimated from frequency-response dynamics; the PSAT
+  // ground-truth value is ≈ 4.0 s on the 100 MVA aggregate system base (clipped [4.0, 6.0] s).
   {
     // IEEE 9-bus rated capacities — use backend value if available (forward-compatible
     // with future systems where generator fleet changes dynamically)
     const GEN_CAP_MW = d.total_capacity_mw || 500;
     const genMW  = d.total_generation_mw || 330;
     const loadMW = d.total_load_mw       || 315;
-    const H_live_sync = (d.H_system != null) ? d.H_system : 4.0;  // EKF-estimated aggregate inertia [s]
+    const H_live_sync = (d.H_system != null) ? d.H_system : 4.0;  // Estimated aggregate inertia [s]
     const rspin0 = Math.max(0, Math.round((GEN_CAP_MW - genMW) / Math.max(loadMW, 1) * 100));
     const phead0 = Math.max(0, Math.round(GEN_CAP_MW - genMW));
     BASE.sync.h[0]     = parseFloat(H_live_sync.toFixed(2));
